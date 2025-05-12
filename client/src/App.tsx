@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import Settings from "@/pages/settings";
+import TripCreator from "@/pages/trip-creator";
 import { useEffect, useState } from "react";
 
 function App() {

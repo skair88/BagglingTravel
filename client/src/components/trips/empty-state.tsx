@@ -17,17 +17,30 @@ const EmptyState: React.FC<EmptyStateProps> = ({ onAddClick }) => {
 
   return (
     <div className="flex flex-col items-center justify-center py-12 px-4 text-center h-[60vh]">
+      {/* Sad luggage icon as shown in mockup */}
       <div className="w-32 h-32 mb-6">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 200 200"
+        <svg 
+          xmlns="http://www.w3.org/2000/svg" 
+          viewBox="0 0 24 24" 
           className="w-full h-full text-gray-300"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
         >
-          <rect x="30" y="40" width="140" height="120" rx="10" fill="none" stroke="currentColor" strokeWidth="6" />
-          <rect x="70" y="20" width="60" height="20" rx="5" fill="none" stroke="currentColor" strokeWidth="6" />
-          <circle cx="70" cy="90" r="10" fill="currentColor" />
-          <circle cx="130" cy="90" r="10" fill="currentColor" />
-          <path d="M70 120 Q100 140, 130 120" fill="none" stroke="currentColor" strokeWidth="6" strokeLinecap="round" />
+          {/* Main luggage body */}
+          <rect x="4" y="6" width="16" height="15" rx="2" />
+          
+          {/* Handle */}
+          <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+          
+          {/* Eyes (sad) */}
+          <circle cx="9" cy="12" r="1.5" fill="currentColor" />
+          <circle cx="15" cy="12" r="1.5" fill="currentColor" />
+          
+          {/* Sad mouth */}
+          <path d="M9 16c.85.5 2.4 1 3 1 .6 0 2.15-.5 3-1" />
         </svg>
       </div>
 
@@ -37,7 +50,8 @@ const EmptyState: React.FC<EmptyStateProps> = ({ onAddClick }) => {
       
       <Button 
         onClick={handleAddClick}
-        className="mt-4 w-full max-w-xs bg-gray-200 text-gray-700 hover:bg-gray-300"
+        className="mt-4 w-full max-w-xs bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
+        variant="outline"
       >
         Add one more trip
       </Button>

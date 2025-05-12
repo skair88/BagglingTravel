@@ -1,5 +1,6 @@
 import React from 'react';
 import { navigate } from 'wouter/use-browser-location';
+import { ChevronLeft } from 'lucide-react';
 
 interface HeaderProps {
   title: string;
@@ -23,19 +24,19 @@ const Header: React.FC<HeaderProps> = ({
   };
 
   return (
-    <header className="w-full p-4 bg-gray-100 border-b border-gray-200">
+    <header className="w-full p-4 bg-white border-b border-gray-200">
       <div className="flex items-center justify-between">
         <div className="flex items-center">
           {showBackButton && (
             <button 
               onClick={handleBackClick}
-              className="mr-2 text-gray-600 hover:text-gray-900"
+              className="mr-2 text-gray-600 hover:text-gray-900 p-1"
               aria-label="Go back"
             >
-              &larr;
+              <ChevronLeft size={20} />
             </button>
           )}
-          <h1 className="text-xl font-bold">{title}</h1>
+          <h1 className="text-xl font-bold text-gray-900">{title}</h1>
         </div>
         
         {rightAction && (
