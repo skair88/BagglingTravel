@@ -1,87 +1,155 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState, useEffect, useMemo } from 'react';
 import { Item, Category } from '@shared/schema';
-import { apiRequest } from '@/lib/queryClient';
-import { localStorage } from '@/lib/storage';
+import { localStorageService } from '@/lib/localStorageService';
 
-// Custom hook for managing items and categories
-export function useItems() {
-  const queryClient = useQueryClient();
-  
-  // Get all categories
-  const { data: categories = [], isLoading: categoriesLoading } = useQuery<Category[]>({
-    queryKey: ['/api/categories'],
-    onError: () => {
-      // Use local storage as fallback
-      return localStorage.getCategories();
-    }
-  });
-  
-  // Get items for a specific trip
-  const getItemsByTripId = (tripId: number) => {
-    return useQuery<Item[]>({
-      queryKey: [`/api/trips/${tripId}/items`],
-      onError: () => {
-        // Use local storage as fallback
-        return localStorage.getItemsByTripId(tripId);
+export function useItems(tripId?: number) {
+  const [items, setItems] = useState<Item[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Load items and categories from localStorage on mount
+  useEffect(() => {
+    try {
+      const loadedCategories = localStorageService.getCategories();
+      setCategories(loadedCategories);
+
+      if (tripId) {
+        const tripItems = localStorageService.getItemsByTripId(tripId);
+        setItems(tripItems);
+      } else {
+        const allItems = localStorageService.getItems();
+        setItems(allItems);
       }
-    });
-  };
-  
-  // Toggle item packed status
-  const toggleItemPackedMutation = useMutation({
-    mutationFn: async ({ itemId, isPacked }: { itemId: number; isPacked: boolean }) => {
-      const response = await apiRequest('PATCH', `/api/items/${itemId}`, { isPacked });
-      return response.json();
-    },
-    onSuccess: (_, variables) => {
-      // Find tripId to invalidate the correct query
-      const items = queryClient.getQueryData<Item[]>(['/api/trips/*/items']);
-      if (items) {
-        const item = items.find(i => i.id === variables.itemId);
-        if (item) {
-          queryClient.invalidateQueries({ queryKey: [`/api/trips/${item.tripId}/items`] });
+    } catch (error) {
+      console.error('Error loading items:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [tripId]);
+
+  // Items grouped by category
+  const itemsByCategory = useMemo(() => {
+    return categories.map(category => {
+      const categoryItems = items.filter(item => item.categoryId === category.id);
+      return {
+        category,
+        items: categoryItems
+      };
+    }).filter(group => group.items.length > 0);
+  }, [items, categories]);
+
+  // Calculate packing progress
+  const packingProgress = useMemo(() => {
+    if (items.length === 0) return 0;
+    const packedItems = items.filter(item => item.isPacked);
+    return Math.round((packedItems.length / items.length) * 100);
+  }, [items]);
+
+  // Add a new item
+  const addItem = async (item: Omit<Item, 'id'>) => {
+    try {
+      const newItem = localStorageService.addItem(item);
+      setItems(prevItems => [...prevItems, newItem]);
+      
+      // Update trip progress if tripId is provided
+      if (tripId) {
+        const progress = localStorageService.calculateTripProgress(tripId);
+        const trips = localStorageService.getTrips();
+        const trip = trips.find(t => t.id === tripId);
+        if (trip) {
+          localStorageService.updateTrip(tripId, { progress });
         }
       }
-    },
-    onError: (error) => {
-      console.error('Failed to update item', error);
+      
+      return newItem;
+    } catch (error) {
+      console.error('Error adding item:', error);
+      throw error;
     }
-  });
-  
-  // Add custom item
-  const addItemMutation = useMutation({
-    mutationFn: async (newItem: Omit<Item, 'id'>) => {
-      const response = await apiRequest('POST', '/api/items', newItem);
-      return response.json();
-    },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: [`/api/trips/${variables.tripId}/items`] });
-    },
-    onError: (error) => {
-      console.error('Failed to add item', error);
+  };
+
+  // Toggle item packed status
+  const toggleItemPacked = async (itemId: number) => {
+    try {
+      const item = items.find(i => i.id === itemId);
+      if (!item) return null;
+      
+      const updatedItem = localStorageService.updateItem(itemId, { 
+        isPacked: !item.isPacked 
+      });
+      
+      if (updatedItem) {
+        setItems(prevItems => 
+          prevItems.map(item => item.id === itemId ? updatedItem : item)
+        );
+        
+        // Update trip progress if tripId is provided
+        if (tripId) {
+          const progress = localStorageService.calculateTripProgress(tripId);
+          const trips = localStorageService.getTrips();
+          const trip = trips.find(t => t.id === tripId);
+          if (trip) {
+            localStorageService.updateTrip(tripId, { progress });
+          }
+        }
+      }
+      
+      return updatedItem;
+    } catch (error) {
+      console.error('Error toggling item:', error);
+      throw error;
     }
-  });
-  
-  // Delete item
-  const deleteItemMutation = useMutation({
-    mutationFn: async ({ itemId, tripId }: { itemId: number; tripId: number }) => {
-      await apiRequest('DELETE', `/api/items/${itemId}`);
-      return { itemId, tripId };
-    },
-    onSuccess: (variables) => {
-      queryClient.invalidateQueries({ queryKey: [`/api/trips/${variables.tripId}/items`] });
-    },
-    onError: (error) => {
-      console.error('Failed to delete item', error);
+  };
+
+  // Update an item
+  const updateItem = async (itemId: number, updatedData: Partial<Item>) => {
+    try {
+      const updatedItem = localStorageService.updateItem(itemId, updatedData);
+      if (updatedItem) {
+        setItems(prevItems => 
+          prevItems.map(item => item.id === itemId ? updatedItem : item)
+        );
+      }
+      return updatedItem;
+    } catch (error) {
+      console.error('Error updating item:', error);
+      throw error;
     }
-  });
-  
+  };
+
+  // Delete an item
+  const deleteItem = async (itemId: number) => {
+    try {
+      const success = localStorageService.deleteItem(itemId);
+      if (success) {
+        setItems(prevItems => prevItems.filter(item => item.id !== itemId));
+        
+        // Update trip progress if tripId is provided
+        if (tripId) {
+          const progress = localStorageService.calculateTripProgress(tripId);
+          const trips = localStorageService.getTrips();
+          const trip = trips.find(t => t.id === tripId);
+          if (trip) {
+            localStorageService.updateTrip(tripId, { progress });
+          }
+        }
+      }
+      return success;
+    } catch (error) {
+      console.error('Error deleting item:', error);
+      throw error;
+    }
+  };
+
   return {
+    items,
     categories,
-    categoriesLoading,
-    getItemsByTripId,
-    toggleItemPacked: toggleItemPackedMutation.mutate,
-    addItem: addItemMutation.mutate,
-    deleteItem: deleteItemMutation.mutate
+    itemsByCategory,
+    packingProgress,
+    loading,
+    addItem,
+    toggleItemPacked,
+    updateItem,
+    deleteItem
   };
 }

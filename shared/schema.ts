@@ -1,120 +1,74 @@
-import { pgTable, text, serial, integer, boolean, date, timestamp, json } from "drizzle-orm/pg-core";
-import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-// User table
-export const users = pgTable("users", {
-  id: serial("id").primaryKey(),
-  username: text("username").notNull().unique(),
-  password: text("password").notNull(),
-});
-
-export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
-  password: true,
-});
-
-export type InsertUser = z.infer<typeof insertUserSchema>;
-export type User = typeof users.$inferSelect;
-
-// Trip table
-export const trips = pgTable("trips", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").references(() => users.id),
-  destination: text("destination").notNull(),
-  location: json("location").notNull(),
-  startDate: date("start_date").notNull(),
-  endDate: date("end_date").notNull(),
-  purpose: text("purpose"),
-  activities: text("activities").array(),
-  createdAt: timestamp("created_at").defaultNow(),
-});
-
-export const insertTripSchema = createInsertSchema(trips).omit({
-  id: true,
-  createdAt: true,
-});
-
-export type InsertTrip = z.infer<typeof insertTripSchema>;
-export type Trip = typeof trips.$inferSelect;
+// Trip interface
+export interface Trip {
+  id: number;
+  destination: string;
+  location: { lat: number; lng: number };
+  startDate: Date;
+  endDate: Date;
+  purpose: string;
+  activities: string[];
+  createdAt: Date;
+  progress: number;
+}
 
 // Weather data for trips
-export const tripWeather = pgTable("trip_weather", {
-  id: serial("id").primaryKey(),
-  tripId: integer("trip_id").references(() => trips.id),
-  date: date("date").notNull(),
-  temperature: integer("temperature").notNull(),
-  condition: text("condition").notNull(),
-  icon: text("icon").notNull(),
-});
-
-export const insertTripWeatherSchema = createInsertSchema(tripWeather).omit({
-  id: true,
-});
-
-export type InsertTripWeather = z.infer<typeof insertTripWeatherSchema>;
-export type TripWeather = typeof tripWeather.$inferSelect;
+export interface TripWeather {
+  id: number;
+  tripId: number;
+  date: Date;
+  temperature: number;
+  condition: string;
+  icon: string;
+}
 
 // Categories for packing items
-export const categories = pgTable("categories", {
-  id: serial("id").primaryKey(),
-  name: text("name").notNull().unique(),
-});
-
-export const insertCategorySchema = createInsertSchema(categories).omit({
-  id: true,
-});
-
-export type InsertCategory = z.infer<typeof insertCategorySchema>;
-export type Category = typeof categories.$inferSelect;
+export interface Category {
+  id: number;
+  name: string;
+}
 
 // Items for packing lists
-export const items = pgTable("items", {
-  id: serial("id").primaryKey(),
-  tripId: integer("trip_id").references(() => trips.id),
-  name: text("name").notNull(),
-  categoryId: integer("category_id").references(() => categories.id),
-  isPacked: boolean("is_packed").default(false),
-  quantity: integer("quantity").default(1),
-  isCustom: boolean("is_custom").default(false),
+export interface Item {
+  id: number;
+  tripId: number;
+  name: string;
+  categoryId: number;
+  isPacked: boolean;
+  quantity: number;
+  isCustom: boolean;
+}
+
+// Settings interface
+export interface Settings {
+  darkMode: boolean;
+  language: string;
+}
+
+// Trip creation data
+export interface TripCreationData {
+  destination: string;
+  location: { lat: number; lng: number };
+  startDate: Date;
+  endDate: Date;
+  purpose: string;
+  activities: string[];
+}
+
+// Validation schemas
+export const tripSchema = z.object({
+  destination: z.string().min(1, "Destination is required"),
+  startDate: z.date(),
+  endDate: z.date(),
+  purpose: z.string().optional(),
+  activities: z.array(z.string()).optional(),
 });
 
-export const insertItemSchema = createInsertSchema(items).omit({
-  id: true,
+export const itemSchema = z.object({
+  name: z.string().min(1, "Item name is required"),
+  categoryId: z.number(),
+  quantity: z.number().min(1, "Quantity must be at least 1"),
+  isPacked: z.boolean().default(false),
+  isCustom: z.boolean().default(false),
 });
-
-export type InsertItem = z.infer<typeof insertItemSchema>;
-export type Item = typeof items.$inferSelect;
-
-// Settings table for user preferences
-export const settings = pgTable("settings", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").references(() => users.id),
-  darkMode: boolean("dark_mode").default(false),
-  offlineMode: boolean("offline_mode").default(true),
-  language: text("language").default("English"),
-});
-
-export const insertSettingsSchema = createInsertSchema(settings).omit({
-  id: true,
-});
-
-export type InsertSettings = z.infer<typeof insertSettingsSchema>;
-export type Settings = typeof settings.$inferSelect;
-
-// Common item templates for generating packing lists
-export const itemTemplates = pgTable("item_templates", {
-  id: serial("id").primaryKey(),
-  name: text("name").notNull(),
-  categoryId: integer("category_id").references(() => categories.id),
-  forPurpose: text("for_purpose").array(),
-  forActivity: text("for_activity").array(),
-  forWeather: text("for_weather").array(),
-});
-
-export const insertItemTemplateSchema = createInsertSchema(itemTemplates).omit({
-  id: true,
-});
-
-export type InsertItemTemplate = z.infer<typeof insertItemTemplateSchema>;
-export type ItemTemplate = typeof itemTemplates.$inferSelect;

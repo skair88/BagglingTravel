@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button } from '@/components/ui/button';
+import { navigate } from 'wouter/use-browser-location';
 
 interface HeaderProps {
   title: string;
@@ -8,25 +8,42 @@ interface HeaderProps {
   rightAction?: React.ReactNode;
 }
 
-const Header: React.FC<HeaderProps> = ({ 
-  title, 
-  showBackButton = false, 
+const Header: React.FC<HeaderProps> = ({
+  title,
+  showBackButton = false,
   onBackClick,
   rightAction
 }) => {
+  const handleBackClick = () => {
+    if (onBackClick) {
+      onBackClick();
+    } else {
+      navigate('/');
+    }
+  };
+
   return (
-    <header className="px-5 py-4 border-b border-border flex items-center justify-between">
-      {showBackButton ? (
-        <Button variant="ghost" size="icon" onClick={onBackClick} className="text-text-primary">
-          <span className="material-icons">arrow_back</span>
-        </Button>
-      ) : (
-        <div className="w-8"></div> // Spacer for alignment
-      )}
-      
-      <h1 className="text-xl font-semibold">{title}</h1>
-      
-      {rightAction ? rightAction : <div className="w-8"></div>}
+    <header className="w-full p-4 bg-gray-100 border-b border-gray-200">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center">
+          {showBackButton && (
+            <button 
+              onClick={handleBackClick}
+              className="mr-2 text-gray-600 hover:text-gray-900"
+              aria-label="Go back"
+            >
+              &larr;
+            </button>
+          )}
+          <h1 className="text-xl font-bold">{title}</h1>
+        </div>
+        
+        {rightAction && (
+          <div className="flex items-center">
+            {rightAction}
+          </div>
+        )}
+      </div>
     </header>
   );
 };

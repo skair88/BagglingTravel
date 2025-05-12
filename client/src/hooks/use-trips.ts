@@ -1,120 +1,108 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Trip, TripWeather, Item } from '@shared/schema';
-import { apiRequest } from '@/lib/queryClient';
-import { localStorage } from '@/lib/storage';
+import { useState, useEffect, useMemo } from 'react';
+import { Trip, TripCreationData } from '@shared/schema';
+import { localStorageService } from '@/lib/localStorageService';
 
-// Custom hook for managing trips
 export function useTrips() {
-  const queryClient = useQueryClient();
-  
-  // Get all trips
-  const { data: trips = [], isLoading, error } = useQuery<Trip[]>({
-    queryKey: ['/api/trips'],
-    onError: () => {
-      // Use local storage as fallback if network request fails
-      return localStorage.getTrips();
+  const [trips, setTrips] = useState<Trip[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Load trips from localStorage on mount
+  useEffect(() => {
+    try {
+      const loadedTrips = localStorageService.getTrips();
+      setTrips(loadedTrips);
+    } catch (error) {
+      console.error('Error loading trips:', error);
+    } finally {
+      setLoading(false);
     }
-  });
-  
-  // Sort trips by start date (upcoming first)
-  const sortedTrips = [...trips].sort((a, b) => {
-    return new Date(a.startDate).getTime() - new Date(b.startDate).getTime();
-  });
-  
-  // Split into upcoming and past trips
-  const today = new Date();
-  const upcomingTrips = sortedTrips.filter(trip => new Date(trip.endDate) >= today);
-  const pastTrips = sortedTrips.filter(trip => new Date(trip.endDate) < today);
-  
-  // Create trip mutation
-  const createTripMutation = useMutation({
-    mutationFn: async (newTrip: Omit<Trip, 'id' | 'createdAt'>) => {
-      const response = await apiRequest('POST', '/api/trips', newTrip);
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/trips'] });
-    },
-    onError: (error) => {
-      console.error('Failed to create trip', error);
-    }
-  });
-  
-  // Delete trip mutation
-  const deleteTripMutation = useMutation({
-    mutationFn: async (tripId: number) => {
-      await apiRequest('DELETE', `/api/trips/${tripId}`);
-      return tripId;
-    },
-    onSuccess: (tripId) => {
-      queryClient.invalidateQueries({ queryKey: ['/api/trips'] });
-      queryClient.invalidateQueries({ queryKey: [`/api/trips/${tripId}/items`] });
-      queryClient.invalidateQueries({ queryKey: [`/api/trips/${tripId}/weather`] });
-    },
-    onError: (error) => {
-      console.error('Failed to delete trip', error);
-    }
-  });
-  
-  // Get trip weather
-  const getWeatherForTrip = (tripId: number) => {
-    return useQuery<TripWeather[]>({
-      queryKey: [`/api/trips/${tripId}/weather`],
-      onError: () => {
-        // Use local storage as fallback
-        return localStorage.getWeatherByTripId(tripId);
-      }
+  }, []);
+
+  // Sort trips by start date
+  const sortedTrips = useMemo(() => {
+    return [...trips].sort((a, b) => {
+      return new Date(a.startDate).getTime() - new Date(b.startDate).getTime();
     });
-  };
-  
-  // Generate packing list
-  const generatePackingListMutation = useMutation({
-    mutationFn: async (tripId: number) => {
-      const response = await apiRequest('POST', `/api/trips/${tripId}/generate-packing-list`);
-      return response.json();
-    },
-    onSuccess: (_, tripId) => {
-      queryClient.invalidateQueries({ queryKey: [`/api/trips/${tripId}/items`] });
-    },
-    onError: (error) => {
-      console.error('Failed to generate packing list', error);
-    }
-  });
-  
-  // Calculate trip packing progress
-  const getTripProgress = (tripId: number, items: Item[]) => {
-    if (!items || items.length === 0) return 0;
-    
-    const packedItems = items.filter(item => item.isPacked);
-    return Math.round((packedItems.length / items.length) * 100);
-  };
-  
-  // Calculate days until departure
+  }, [trips]);
+
+  // Current and upcoming trips
+  const upcomingTrips = useMemo(() => {
+    const now = new Date();
+    return sortedTrips.filter(trip => new Date(trip.endDate) >= now);
+  }, [sortedTrips]);
+
+  // Past trips
+  const pastTrips = useMemo(() => {
+    const now = new Date();
+    return sortedTrips.filter(trip => new Date(trip.endDate) < now)
+      .sort((a, b) => new Date(b.endDate).getTime() - new Date(a.endDate).getTime()); // Most recent first
+  }, [sortedTrips]);
+
+  // Get days until departure for a trip
   const getDaysUntilDeparture = (startDate: Date) => {
+    const now = new Date();
     const start = new Date(startDate);
-    const today = new Date();
-    
-    // Reset time to midnight for accurate day calculation
-    today.setHours(0, 0, 0, 0);
-    start.setHours(0, 0, 0, 0);
-    
-    const diffTime = start.getTime() - today.getTime();
+    const diffTime = start.getTime() - now.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
-    return Math.max(0, diffDays);
+    return diffDays > 0 ? diffDays : 0;
   };
-  
+
+  // Create a new trip
+  const createTrip = async (tripData: TripCreationData) => {
+    try {
+      const newTrip = localStorageService.addTrip(tripData);
+      setTrips(prevTrips => [...prevTrips, newTrip]);
+      return newTrip;
+    } catch (error) {
+      console.error('Error creating trip:', error);
+      throw error;
+    }
+  };
+
+  // Update an existing trip
+  const updateTrip = async (tripId: number, tripData: Partial<Trip>) => {
+    try {
+      const updatedTrip = localStorageService.updateTrip(tripId, tripData);
+      if (updatedTrip) {
+        setTrips(prevTrips => 
+          prevTrips.map(trip => trip.id === tripId ? updatedTrip : trip)
+        );
+      }
+      return updatedTrip;
+    } catch (error) {
+      console.error('Error updating trip:', error);
+      throw error;
+    }
+  };
+
+  // Delete a trip
+  const deleteTrip = async (tripId: number) => {
+    try {
+      const success = localStorageService.deleteTrip(tripId);
+      if (success) {
+        setTrips(prevTrips => prevTrips.filter(trip => trip.id !== tripId));
+      }
+      return success;
+    } catch (error) {
+      console.error('Error deleting trip:', error);
+      throw error;
+    }
+  };
+
+  // Get a specific trip by ID
+  const getTripById = (tripId: number) => {
+    return trips.find(trip => trip.id === tripId);
+  };
+
   return {
     trips,
     upcomingTrips,
     pastTrips,
-    isLoading,
-    error,
-    createTrip: createTripMutation.mutate,
-    deleteTrip: deleteTripMutation.mutate,
-    getWeatherForTrip,
-    generatePackingList: generatePackingListMutation.mutate,
-    getTripProgress,
+    loading,
+    createTrip,
+    updateTrip,
+    deleteTrip,
+    getTripById,
     getDaysUntilDeparture
   };
 }

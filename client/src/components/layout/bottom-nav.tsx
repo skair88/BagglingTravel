@@ -1,32 +1,35 @@
 import React from 'react';
-import { useLocation } from 'wouter';
-import { navigate } from 'wouter/use-browser-location';
+import { useLocation, Link } from 'wouter';
+import { MdHome, MdSettings } from 'react-icons/md';
+import { cn } from '@/lib/utils';
 
 const BottomNav: React.FC = () => {
   const [location] = useLocation();
-  
-  // Determine active route
-  const isHome = location === '/';
-  const isSettings = location === '/settings';
-  
+
   return (
-    <div className="bottom-nav flex items-center justify-between bg-white border-t border-border py-2 px-5 mt-auto">
-      <button 
-        className={`flex flex-col items-center px-5 py-2 ${isHome ? 'text-primary' : 'text-text-secondary'}`}
-        onClick={() => navigate('/')}
-      >
-        <span className="material-icons">luggage</span>
-        <span className="text-xs mt-1">Trips</span>
-      </button>
-      
-      <button 
-        className={`flex flex-col items-center px-5 py-2 ${isSettings ? 'text-primary' : 'text-text-secondary'}`}
-        onClick={() => navigate('/settings')}
-      >
-        <span className="material-icons">settings</span>
-        <span className="text-xs mt-1">Settings</span>
-      </button>
-    </div>
+    <nav className="fixed bottom-0 left-0 w-full bg-white border-t border-gray-200">
+      <div className="grid grid-cols-2 h-14">
+        <Link href="/">
+          <div className={cn(
+            "flex flex-col items-center justify-center h-full cursor-pointer",
+            location === '/' ? "bg-amber-500 text-white" : "text-gray-600"
+          )}>
+            <MdHome size={24} />
+            <span className="text-xs mt-1">Home</span>
+          </div>
+        </Link>
+        
+        <Link href="/settings">
+          <div className={cn(
+            "flex flex-col items-center justify-center h-full cursor-pointer",
+            location === '/settings' ? "bg-amber-500 text-white" : "text-gray-600"
+          )}>
+            <MdSettings size={24} />
+            <span className="text-xs mt-1">Settings</span>
+          </div>
+        </Link>
+      </div>
+    </nav>
   );
 };
 
