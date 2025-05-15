@@ -263,7 +263,7 @@ class LocalStorageService {
     
     return newCategory;
   }
-
+  
   // Weather methods
   getWeather(): TripWeather[] {
     const weatherJson = localStorage.getItem('weather') || '[]';

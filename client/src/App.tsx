@@ -5,6 +5,7 @@ import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import Settings from "@/pages/settings";
 import TripCreator from "@/pages/trip-creator";
+import PackingList from "@/pages/packing-list";
 import { useEffect, useState } from "react";
 
 function App() {
@@ -38,6 +39,7 @@ function App() {
         <Router>
           <Route path="/" component={Home} />
           <Route path="/trip/new" component={TripCreator} />
+          <Route path="/trip/:id/packing" component={PackingList} />
           <Route path="/settings" component={Settings} />
           <Route component={NotFound} />
         </Router>
