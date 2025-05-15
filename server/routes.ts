@@ -33,15 +33,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     try {
       const mapboxApiKey = process.env.MAPBOX_API_KEY;
+      if (!mapboxApiKey) {
+        console.error("Missing MAPBOX_API_KEY environment variable");
+        return res.status(500).json({ error: 'Mapbox API key not configured' });
+      }
+      
       console.log("Server side API key availability:", {
         keyExists: !!mapboxApiKey,
-        keyPrefix: mapboxApiKey ? mapboxApiKey.substring(0, 4) + "..." : "N/A"
+        keyPrefix: mapboxApiKey.substring(0, 4) + "..."
       });
       
-      // Use static data if no API key, use real API otherwise
       let locations = [];
-      
-      if (!mapboxApiKey) {
         console.log("Fallback to static locations data for query:", query);
         
         // Static locations that match the query
@@ -76,12 +78,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
             )}.json?access_token=${mapboxApiKey}&limit=${limit}&language=${language}`
           );
           
+          const responseText = await response.text();
+          
           if (!response.ok) {
-            throw new Error(`Mapbox API error: ${response.statusText}`);
+            console.error("Mapbox API error response:", responseText);
+            return res.status(response.status).json({ 
+              error: `Mapbox API error: ${response.statusText}`,
+              details: responseText
+            });
           }
           
           // Parse response and cast to any to avoid TypeScript issues
-          const rawData = await response.json();
+          const rawData = JSON.parse(responseText);
           const data = rawData as { features?: any[] };
           
           // Transform the response to match our expected format
