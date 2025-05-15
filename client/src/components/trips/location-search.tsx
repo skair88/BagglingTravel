@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Input } from '@/components/ui/input';
 import { MapPin } from 'lucide-react';
+import { getLocation, isMapboxAvailable } from '@/lib/mapbox';
 
 interface Location {
   placeName: string;
@@ -57,13 +58,10 @@ const LocationSearch: React.FC<LocationSearchProps> = ({
     setIsLoading(true);
     
     try {
-      // Import the getLocation and isMapboxAvailable from mapbox lib
-      const mapboxLib = await import('@/lib/mapbox');
-      
       // Check if Mapbox API is available
-      if (mapboxLib.isMapboxAvailable()) {
+      if (isMapboxAvailable()) {
         // Get locations from Mapbox API
-        const locations = await mapboxLib.getLocation(query);
+        const locations = await getLocation(query);
         
         if (locations && locations.length > 0) {
           setSuggestions(locations);
@@ -87,7 +85,7 @@ const LocationSearch: React.FC<LocationSearchProps> = ({
           location.placeName.toLowerCase().includes(query.toLowerCase())
         );
         
-        setSuggestions(filteredLocations.length > 0 ? filteredLocations : sampleLocations);
+        setSuggestions(filteredLocations.length > 0 ? filteredLocations : []);
       }
     } catch (error) {
       console.error('Error fetching locations:', error);

@@ -6,7 +6,7 @@
 const MAPBOX_API_URL = "https://api.mapbox.com";
 
 // API key from environment variables
-const MAPBOX_API_KEY = import.meta.env.MAPBOX_API_KEY;
+const MAPBOX_API_KEY = import.meta.env.VITE_MAPBOX_API_KEY;
 
 // Check if Mapbox API is available
 export function isMapboxAvailable() {
