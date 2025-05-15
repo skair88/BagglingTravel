@@ -1,32 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { navigate } from 'wouter/use-browser-location';
-import { format } from 'date-fns';
-import { 
-  MapPin, 
-  Umbrella, 
-  Backpack, 
-  Camera, 
-  Mountain, 
-  Waves, 
-  UtensilsCrossed, 
-  Building2, 
-  Tent,
-  Briefcase,
-  Home,
-  Heart
-} from 'lucide-react';
+import { MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import Header from '@/components/layout/header';
 import ProgressBar from '@/components/trips/progress-bar';
 import LocationSearch from '@/components/trips/location-search';
 import WeatherForecast from '@/components/trips/weather-forecast';
-import ActivitySelector from '@/components/trips/activity-selector';
-import PurposeSelector from '@/components/trips/purpose-selector';
 import { getWeatherForecast } from '@/lib/weather';
 import { useTrips } from '@/hooks/use-trips';
 import MobileDatePicker from '@/components/ui/mobile-date-picker';
+import BottomNav from '@/components/layout/bottom-nav';
 
 // WeatherForecast interface
 interface WeatherForecast {
@@ -42,8 +26,8 @@ interface TripWizardData {
   location: { lat: number; lng: number };
   startDate: Date;
   endDate: Date;
-  purpose: string;
-  activities: string[];
+  purpose: string; // Keeping for backward compatibility
+  activities: string[]; // Keeping for backward compatibility
 }
 
 // Default trip data
@@ -56,37 +40,6 @@ const defaultTripData: TripWizardData = {
   activities: [],
 };
 
-// Доступные активности для выбора
-const activityOptions = [
-  { id: 'beach', name: 'Beach', icon: <Umbrella size={24} /> },
-  { id: 'hiking', name: 'Hiking', icon: <Mountain size={24} /> },
-  { id: 'sightseeing', name: 'Sightseeing', icon: <Camera size={24} /> },
-  { id: 'swimming', name: 'Swimming', icon: <Waves size={24} /> },
-  { id: 'dining', name: 'Dining', icon: <UtensilsCrossed size={24} /> },
-  { id: 'museums', name: 'Museums', icon: <Building2 size={24} /> },
-  { id: 'camping', name: 'Camping', icon: <Tent size={24} /> },
-  { id: 'adventure', name: 'Adventure', icon: <Backpack size={24} /> },
-];
-
-// Доступные цели поездки
-const purposeOptions = [
-  { 
-    id: 'vacation', 
-    name: 'Vacation', 
-    description: 'Relax, explore, and enjoy your time off'
-  },
-  { 
-    id: 'business', 
-    name: 'Business', 
-    description: 'Work-related travel for meetings, conferences, etc.'
-  },
-  { 
-    id: 'family', 
-    name: 'Family Visit', 
-    description: 'Visit relatives or friends'
-  },
-];
-
 export default function TripCreator() {
   const location = useLocation();
   const { createTrip } = useTrips();
@@ -96,10 +49,7 @@ export default function TripCreator() {
   const [locationInput, setLocationInput] = useState('');
   const [weatherForecast, setWeatherForecast] = useState<WeatherForecast[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [currentStep, setCurrentStep] = useState(1);
   const [isDateError, setIsDateError] = useState(false);
-  const [selectedActivities, setSelectedActivities] = useState<string[]>([]);
-  const [selectedPurpose, setSelectedPurpose] = useState('vacation'); // Default purpose
   
   // Fetch weather forecast when location and dates are set
   useEffect(() => {
@@ -198,34 +148,10 @@ export default function TripCreator() {
     });
   };
   
-  // Handle activities selection
-  const handleActivitiesChange = (selectedIds: string[]) => {
-    setSelectedActivities(selectedIds);
-    setFormData({
-      ...formData,
-      activities: selectedIds
-    });
-  };
-  
-  // Handle purpose selection
-  const handlePurposeChange = (purposeId: string) => {
-    setSelectedPurpose(purposeId);
-    setFormData({
-      ...formData,
-      purpose: purposeId
-    });
-  };
-  
   // Handle form submission
-  const handleNextStep = async () => {
+  const handleSaveTrip = async () => {
     // Validate form
     if (!formData.destination || isDateError) {
-      return;
-    }
-    
-    if (currentStep === 1) {
-      // Move to next step in wizard
-      setCurrentStep(2);
       return;
     }
     
@@ -238,8 +164,8 @@ export default function TripCreator() {
         location: formData.location,
         startDate: formData.startDate,
         endDate: formData.endDate,
-        purpose: formData.purpose,
-        activities: formData.activities,
+        purpose: 'vacation', // Default value
+        activities: [], // Empty array
       };
       
       await createTrip(tripData);
@@ -255,15 +181,11 @@ export default function TripCreator() {
     <div className="min-h-screen flex flex-col bg-gray-50">
       <Header title="Baggle" showBackButton onBackClick={() => navigate('/')} />
       
-      <div className="p-4">
-        <ProgressBar currentStep={currentStep} totalSteps={2} />
-        
-        <div className="text-center text-sm text-gray-500 mt-2">
-          Step {currentStep} of 2: {currentStep === 1 ? 'Basic Info' : 'Trip Details'}
-        </div>
+      <div className="p-4 flex-1">
+        <ProgressBar currentStep={1} totalSteps={1} />
         
         <div className="mt-6">
-          <h2 className="text-lg font-medium mb-3">Direction</h2>
+          <h2 className="text-center text-lg font-medium mb-3">Direction</h2>
           <LocationSearch
             value={locationInput}
             onChange={setLocationInput}
@@ -272,7 +194,7 @@ export default function TripCreator() {
         </div>
         
         <div className="mt-6">
-          <h2 className="text-lg font-medium mb-3">Dates</h2>
+          <h2 className="text-center text-lg font-medium mb-3">Dates</h2>
           
           <div className="grid grid-cols-2 gap-4">
             {/* Start Date */}
@@ -281,11 +203,20 @@ export default function TripCreator() {
               <MobileDatePicker
                 selected={formData.startDate}
                 onSelect={(date) => {
+                  // When from date changes, set both dates in same month
+                  const newEndDate = new Date(formData.endDate);
+                  newEndDate.setFullYear(date.getFullYear());
+                  newEndDate.setMonth(date.getMonth());
+                  
+                  // If end date becomes before start date, adjust it
+                  if (newEndDate < date) {
+                    newEndDate.setDate(date.getDate() + 7);
+                  }
+                  
                   setFormData({
                     ...formData,
                     startDate: date,
-                    // Если конечная дата меньше начальной, устанавливаем ее равной начальной
-                    endDate: formData.endDate < date ? date : formData.endDate
+                    endDate: newEndDate
                   });
                 }}
                 className={isDateError ? 'border-red-500' : ''}
@@ -301,7 +232,7 @@ export default function TripCreator() {
                 onSelect={(date) => {
                   setFormData({ ...formData, endDate: date });
                 }}
-                minDate={formData.startDate} // Запрещаем выбор даты до начальной
+                minDate={formData.startDate} // Prevent dates before start date
                 className={isDateError ? 'border-red-500' : ''}
                 placeholder="Pick a date"
               />
@@ -316,33 +247,24 @@ export default function TripCreator() {
         </div>
         
         {/* Weather Forecast */}
-        <WeatherForecast forecast={weatherForecast} isLoading={isLoading} />
-        
-        {/* Purpose Selection */}
-        <PurposeSelector
-          options={purposeOptions}
-          selectedPurpose={selectedPurpose}
-          onChange={handlePurposeChange}
-        />
-        
-        {/* Activities Selection */}
-        <ActivitySelector 
-          options={activityOptions}
-          selectedActivities={selectedActivities}
-          onChange={handleActivitiesChange}
-        />
+        <div className="mt-6">
+          <h2 className="text-center text-lg font-medium mb-3">Weather information</h2>
+          <WeatherForecast forecast={weatherForecast} isLoading={isLoading} />
+        </div>
         
         {/* Next Button */}
         <div className="mt-8">
           <Button 
             className="w-full"
-            onClick={handleNextStep}
+            onClick={handleSaveTrip}
             disabled={!formData.destination || isDateError || isLoading}
           >
             Next
           </Button>
         </div>
       </div>
+      
+      <BottomNav />
     </div>
   );
 }
