@@ -25,12 +25,12 @@ const PackingList: React.FC<PackingListProps> = ({
 }) => {
   const [expandedCategories, setExpandedCategories] = useState<Record<number, boolean>>(
     // Initialize all categories as expanded
-    categories.reduce((acc, category) => ({ ...acc, [category.id]: true }), {})
+    (categories || []).reduce((acc, category) => ({ ...acc, [category.id]: true }), {})
   );
 
   // Group items by category
-  const itemsByCategory = categories.map(category => {
-    const categoryItems = items.filter(item => item.categoryId === category.id);
+  const itemsByCategory = (categories || []).map(category => {
+    const categoryItems = (items || []).filter(item => item.categoryId === category.id);
     return {
       category,
       items: categoryItems,

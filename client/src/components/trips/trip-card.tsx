@@ -49,13 +49,13 @@ const TripCard: React.FC<TripCardProps> = ({
         </div>
         
         {/* Weather preview */}
-        {!isPast && weather && weather.length > 0 && (
+        {!isPast && weather && Array.isArray(weather) && weather.length > 0 && (
           <div className="mt-3 flex overflow-x-auto no-scrollbar py-1">
             {weather.slice(0, 3).map((day) => (
               <div key={day.id} className="flex flex-col items-center mr-3 min-w-[50px]">
                 <img
-                  src={`https://openweathermap.org/img/wn/${day.icon}.png`}
-                  alt={day.condition}
+                  src={`https://openweathermap.org/img/wn/${day.icon || '01d'}.png`}
+                  alt={day.condition || 'Weather'}
                   className="w-8 h-8"
                 />
                 <span className="text-xs">{Math.round(day.temperature)}°</span>

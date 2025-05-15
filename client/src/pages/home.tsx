@@ -10,7 +10,16 @@ import { useTrips } from '@/hooks/use-trips';
 import { localStorageService } from '@/lib/localStorageService';
 
 export default function Home() {
-  const { upcomingTrips, pastTrips, loading, getDaysUntilDeparture } = useTrips();
+  const { trips, isLoading, getDaysUntilDeparture } = useTrips();
+  
+  // Get upcoming and past trips
+  const upcomingTrips = trips.filter(trip => new Date(trip.startDate) >= new Date())
+    .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
+    
+  const pastTrips = trips.filter(trip => new Date(trip.endDate) < new Date())
+    .sort((a, b) => new Date(b.endDate).getTime() - new Date(a.endDate).getTime());
+  
+  const loading = isLoading;
   const [showPastTrips, setShowPastTrips] = useState(false);
   
   const handleAddTrip = () => {
