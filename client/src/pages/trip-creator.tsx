@@ -11,7 +11,10 @@ import {
   Waves, 
   UtensilsCrossed, 
   Building2, 
-  Tent
+  Tent,
+  Briefcase,
+  Home,
+  Heart
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,6 +23,7 @@ import ProgressBar from '@/components/trips/progress-bar';
 import LocationSearch from '@/components/trips/location-search';
 import WeatherForecast from '@/components/trips/weather-forecast';
 import ActivitySelector from '@/components/trips/activity-selector';
+import PurposeSelector from '@/components/trips/purpose-selector';
 import { getWeatherForecast } from '@/lib/weather';
 import { useTrips } from '@/hooks/use-trips';
 import MobileDatePicker from '@/components/ui/mobile-date-picker';
@@ -38,6 +42,7 @@ interface TripWizardData {
   location: { lat: number; lng: number };
   startDate: Date;
   endDate: Date;
+  purpose: string;
   activities: string[];
 }
 
@@ -47,6 +52,7 @@ const defaultTripData: TripWizardData = {
   location: { lat: 0, lng: 0 },
   startDate: new Date(),
   endDate: new Date(new Date().setDate(new Date().getDate() + 7)),
+  purpose: 'vacation', // Default purpose
   activities: [],
 };
 
@@ -62,6 +68,25 @@ const activityOptions = [
   { id: 'adventure', name: 'Adventure', icon: <Backpack size={24} /> },
 ];
 
+// Доступные цели поездки
+const purposeOptions = [
+  { 
+    id: 'vacation', 
+    name: 'Vacation', 
+    description: 'Relax, explore, and enjoy your time off'
+  },
+  { 
+    id: 'business', 
+    name: 'Business', 
+    description: 'Work-related travel for meetings, conferences, etc.'
+  },
+  { 
+    id: 'family', 
+    name: 'Family Visit', 
+    description: 'Visit relatives or friends'
+  },
+];
+
 export default function TripCreator() {
   const location = useLocation();
   const { createTrip } = useTrips();
@@ -74,6 +99,7 @@ export default function TripCreator() {
   const [currentStep, setCurrentStep] = useState(1);
   const [isDateError, setIsDateError] = useState(false);
   const [selectedActivities, setSelectedActivities] = useState<string[]>([]);
+  const [selectedPurpose, setSelectedPurpose] = useState('vacation'); // Default purpose
   
   // Fetch weather forecast when location and dates are set
   useEffect(() => {
@@ -181,6 +207,15 @@ export default function TripCreator() {
     });
   };
   
+  // Handle purpose selection
+  const handlePurposeChange = (purposeId: string) => {
+    setSelectedPurpose(purposeId);
+    setFormData({
+      ...formData,
+      purpose: purposeId
+    });
+  };
+  
   // Handle form submission
   const handleNextStep = async () => {
     // Validate form
@@ -203,7 +238,7 @@ export default function TripCreator() {
         location: formData.location,
         startDate: formData.startDate,
         endDate: formData.endDate,
-        purpose: 'vacation', // Default purpose
+        purpose: formData.purpose,
         activities: formData.activities,
       };
       
@@ -222,6 +257,10 @@ export default function TripCreator() {
       
       <div className="p-4">
         <ProgressBar currentStep={currentStep} totalSteps={2} />
+        
+        <div className="text-center text-sm text-gray-500 mt-2">
+          Step {currentStep} of 2: {currentStep === 1 ? 'Basic Info' : 'Trip Details'}
+        </div>
         
         <div className="mt-6">
           <h2 className="text-lg font-medium mb-3">Direction</h2>
@@ -278,6 +317,13 @@ export default function TripCreator() {
         
         {/* Weather Forecast */}
         <WeatherForecast forecast={weatherForecast} isLoading={isLoading} />
+        
+        {/* Purpose Selection */}
+        <PurposeSelector
+          options={purposeOptions}
+          selectedPurpose={selectedPurpose}
+          onChange={handlePurposeChange}
+        />
         
         {/* Activities Selection */}
         <ActivitySelector 
