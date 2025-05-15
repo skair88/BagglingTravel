@@ -1,7 +1,29 @@
 import { useState, useEffect } from 'react';
 import { differenceInDays } from 'date-fns';
 import { localStorageService } from '@/lib/localStorageService';
-import { TripCreationData, Trip } from '@/shared/schema';
+
+// Interfaces
+interface Trip {
+  id: number;
+  destination: string;
+  location: { lat: number; lng: number };
+  startDate: Date;
+  endDate: Date;
+  purpose: string;
+  activities: string[];
+  createdAt: Date;
+  progress: number;
+}
+
+interface TripCreationData {
+  destination: string;
+  location: { lat: number; lng: number };
+  startDate: Date;
+  endDate: Date;
+  purpose: string;
+  activities: string[];
+  progress?: number;
+}
 
 export function useTrips() {
   const [trips, setTrips] = useState<Trip[]>([]);

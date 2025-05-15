@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
+import { navigate } from 'wouter/use-browser-location';
 import { format } from 'date-fns';
 import { Calendar as CalendarIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -44,7 +45,7 @@ const defaultTripData: TripWizardData = {
 };
 
 export default function TripCreator() {
-  const [location, navigate] = useLocation();
+  const location = useLocation();
   const { createTrip } = useTrips();
   
   // Form state
@@ -121,7 +122,7 @@ export default function TripCreator() {
     try {
       setIsLoading(true);
       
-      const tripData: TripCreationData = {
+      const tripData = {
         destination: formData.destination,
         location: formData.location,
         startDate: formData.startDate,

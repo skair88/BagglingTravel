@@ -1,4 +1,44 @@
-import { Trip, Item, Category, TripWeather, Settings } from '@/shared/schema';
+// Define interfaces locally
+interface Trip {
+  id: number;
+  destination: string;
+  location: { lat: number; lng: number };
+  startDate: Date;
+  endDate: Date;
+  purpose: string;
+  activities: string[];
+  createdAt: Date;
+  progress: number;
+}
+
+interface Item {
+  id: number;
+  tripId: number;
+  name: string;
+  categoryId: number;
+  isPacked: boolean;
+  quantity: number;
+  isCustom: boolean;
+}
+
+interface Category {
+  id: number;
+  name: string;
+}
+
+interface TripWeather {
+  id: number;
+  tripId: number;
+  date: Date;
+  temperature: number;
+  condition: string;
+  icon: string;
+}
+
+interface Settings {
+  darkMode: boolean;
+  language: string;
+}
 
 class LocalStorageService {
   constructor() {
