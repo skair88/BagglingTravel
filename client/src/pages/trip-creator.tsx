@@ -11,6 +11,7 @@ import { getWeatherForecast } from '@/lib/weather';
 import { useTrips } from '@/hooks/use-trips';
 import MobileDatePicker from '@/components/ui/mobile-date-picker';
 import BottomNav from '@/components/layout/bottom-nav';
+import EnvDisplay from '@/components/debug/env-display';
 
 // WeatherForecast interface
 interface WeatherForecast {
@@ -250,6 +251,11 @@ export default function TripCreator() {
         <div className="mt-6">
           <h2 className="text-center text-lg font-medium mb-3">Weather information</h2>
           <WeatherForecast forecast={weatherForecast} isLoading={isLoading} />
+        </div>
+        
+        {/* Debug information */}
+        <div className="mt-6">
+          <EnvDisplay />
         </div>
         
         {/* Next Button */}

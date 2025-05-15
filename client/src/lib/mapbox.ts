@@ -182,31 +182,43 @@ export async function getLocation(
   language: string = "en"
 ): Promise<{ placeName: string; lat: number; lng: number }[]> {
   if (!query || !isMapboxAvailable()) {
+    console.log("Mapbox not available:", {available: isMapboxAvailable(), key: MAPBOX_API_KEY});
     return [];
   }
   
   try {
-    const response = await fetch(
-      `${MAPBOX_API_URL}/geocoding/v5/mapbox.places/${encodeURIComponent(
-        query
-      )}.json?access_token=${MAPBOX_API_KEY}&limit=${limit}&language=${language}`
-    );
+    console.log("Fetching from Mapbox with query:", query);
+    
+    const url = `${MAPBOX_API_URL}/geocoding/v5/mapbox.places/${encodeURIComponent(
+      query
+    )}.json?access_token=${MAPBOX_API_KEY}&limit=${limit}&language=${language}`;
+    
+    console.log("Request URL (with token hidden):", url.replace(MAPBOX_API_KEY as string, "API_KEY_HIDDEN"));
+    
+    const response = await fetch(url);
+    
+    console.log("Response status:", response.status, response.statusText);
     
     if (!response.ok) {
       throw new Error(`Mapbox API error: ${response.statusText}`);
     }
     
     const data = await response.json();
+    console.log("Response data:", data);
     
     if (!data.features || data.features.length === 0) {
+      console.log("No features found in response");
       return [];
     }
     
-    return data.features.map((feature: any) => ({
+    const mappedResults = data.features.map((feature: any) => ({
       placeName: feature.place_name,
       lat: feature.center[1], // Mapbox returns [longitude, latitude]
       lng: feature.center[0]
     }));
+    
+    console.log("Mapped results:", mappedResults);
+    return mappedResults;
   } catch (error) {
     console.error("Error fetching locations:", error);
     return [];
