@@ -61,16 +61,64 @@ export default function TripCreator() {
         formData.endDate
       ) {
         setIsLoading(true);
+        
+        // Создаем ключ для кэширования прогноза погоды
+        const cacheKey = `weather_${formData.location.lat}_${formData.location.lng}_${formData.startDate.getTime()}_${formData.endDate.getTime()}`;
+        
+        // Проверяем наличие кэшированных данных
+        const cachedData = localStorage.getItem(cacheKey);
+        
         try {
-          const forecast = await getWeatherForecast(
-            formData.location.lat,
-            formData.location.lng,
-            formData.startDate,
-            formData.endDate
-          );
-          setWeatherForecast(forecast);
+          if (cachedData && !navigator.onLine) {
+            // Если есть кэшированные данные и нет подключения к интернету, используем их
+            console.log('Using cached weather forecast (offline)');
+            const parsed = JSON.parse(cachedData);
+            // Конвертируем строки дат в объекты Date
+            setWeatherForecast(parsed.map((d: any) => ({
+              ...d,
+              date: new Date(d.date)
+            })));
+          } else {
+            // Пытаемся получить свежий прогноз
+            const forecast = await getWeatherForecast(
+              formData.location.lat,
+              formData.location.lng,
+              formData.startDate,
+              formData.endDate
+            );
+            
+            setWeatherForecast(forecast);
+            
+            // Кэшируем полученный прогноз
+            if (forecast.length > 0) {
+              try {
+                localStorage.setItem(cacheKey, JSON.stringify(forecast.map(d => ({
+                  ...d,
+                  date: d.date.toISOString() // Преобразуем дату в строку для хранения
+                }))));
+                console.log('Weather forecast cached successfully');
+              } catch (cacheError) {
+                console.warn('Failed to cache weather forecast:', cacheError);
+              }
+            }
+          }
         } catch (error) {
           console.error('Failed to fetch weather:', error);
+          
+          // При ошибке проверяем наличие кэшированного прогноза
+          if (cachedData) {
+            console.log('Using cached weather forecast (after error)');
+            try {
+              const parsed = JSON.parse(cachedData);
+              // Конвертируем строки дат в объекты Date
+              setWeatherForecast(parsed.map((d: any) => ({
+                ...d,
+                date: new Date(d.date)
+              })));
+            } catch (parseError) {
+              console.error('Failed to parse cached weather data:', parseError);
+            }
+          }
         } finally {
           setIsLoading(false);
         }

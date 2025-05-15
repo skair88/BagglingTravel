@@ -51,9 +51,10 @@ export function useTrips() {
   // Create a new trip
   const createTrip = async (tripData: TripCreationData) => {
     try {
+      // Используем progress из tripData или устанавливаем 0 по умолчанию
       const newTrip = localStorageService.addTrip({
         ...tripData,
-        progress: 0,
+        progress: tripData.progress ?? 0,
       });
       
       setTrips(prev => [...prev, newTrip]);

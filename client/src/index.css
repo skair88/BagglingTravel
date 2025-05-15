@@ -2,6 +2,23 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer utilities {
+  /* Скрываем скроллбар для WebKit (Chrome, Safari, новые версии Edge) */
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Для Firefox */
+  .scrollbar-hide {
+    scrollbar-width: none;
+  }
+
+  /* Для IE и Edge */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+  }
+}
+
 :root {
   /* Customize to match the mockup (light gray theme) */
   --background: 0 0% 98%;
