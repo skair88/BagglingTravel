@@ -56,23 +56,30 @@ const LocationSearch: React.FC<LocationSearchProps> = ({
     
     setIsLoading(true);
     
-    // Simulate a delay and return some dummy data for now
-    // In a real app, you would call an API like Mapbox Geocoding
+    // Всегда предоставляем набор данных для демонстрации, независимо от запроса
+    // Это гарантирует, что пользователь всегда сможет продолжить работу с приложением
+    // В реальном приложении здесь был бы вызов API
     setTimeout(() => {
-      if (query === 'london' || query === 'London') {
-        setSuggestions([
-          { placeName: 'London, UK', lat: 51.5074, lng: -0.1278 },
-          { placeName: 'London, Ontario, Canada', lat: 42.9849, lng: -81.2453 }
-        ]);
-      } else if (query === 'new' || query === 'New') {
-        setSuggestions([
-          { placeName: 'New York, NY, USA', lat: 40.7128, lng: -74.0060 },
-          { placeName: 'New Orleans, LA, USA', lat: 29.9511, lng: -90.0715 },
-          { placeName: 'New Delhi, India', lat: 28.6139, lng: 77.2090 }
-        ]);
+      const sampleLocations = [
+        { placeName: 'London, UK', lat: 51.5074, lng: -0.1278 },
+        { placeName: 'New York, NY, USA', lat: 40.7128, lng: -74.0060 },
+        { placeName: 'Paris, France', lat: 48.8566, lng: 2.3522 },
+        { placeName: 'Tokyo, Japan', lat: 35.6762, lng: 139.6503 },
+        { placeName: 'Sydney, Australia', lat: -33.8688, lng: 151.2093 }
+      ];
+      
+      // Фильтруем локации по запросу
+      const filteredLocations = sampleLocations.filter(location => 
+        location.placeName.toLowerCase().includes(query.toLowerCase())
+      );
+      
+      if (filteredLocations.length > 0) {
+        setSuggestions(filteredLocations);
       } else {
-        setSuggestions([]);
+        // Если нет совпадений, показываем все локации
+        setSuggestions(sampleLocations);
       }
+      
       setIsLoading(false);
     }, 300);
   };

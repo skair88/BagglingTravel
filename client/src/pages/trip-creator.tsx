@@ -179,13 +179,22 @@ export default function TripCreator() {
                     )}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
+                <PopoverContent className="w-auto p-0" align="start">
                   <Calendar
                     mode="single"
                     selected={formData.startDate}
-                    onSelect={(date) => 
-                      setFormData({ ...formData, startDate: date || new Date() })
-                    }
+                    onSelect={(date) => {
+                      if (date) {
+                        setFormData({
+                          ...formData,
+                          startDate: date,
+                          // Если конечная дата меньше начальной, устанавливаем ее равной начальной
+                          endDate: formData.endDate < date ? date : formData.endDate
+                        });
+                      }
+                      document.body.click(); // Закрыть календарь после выбора
+                    }}
+                    defaultMonth={formData.startDate}
                     initialFocus
                   />
                 </PopoverContent>
@@ -211,13 +220,18 @@ export default function TripCreator() {
                     )}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
+                <PopoverContent className="w-auto p-0" align="start">
                   <Calendar
                     mode="single"
                     selected={formData.endDate}
-                    onSelect={(date) => 
-                      setFormData({ ...formData, endDate: date || new Date() })
-                    }
+                    onSelect={(date) => {
+                      if (date) {
+                        setFormData({ ...formData, endDate: date });
+                      }
+                      document.body.click(); // Закрыть календарь после выбора
+                    }}
+                    defaultMonth={formData.startDate}
+                    fromDate={formData.startDate} // Запрещаем выбор даты до начальной
                     initialFocus
                   />
                 </PopoverContent>

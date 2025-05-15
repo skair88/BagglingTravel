@@ -26,24 +26,25 @@ const Header: React.FC<HeaderProps> = ({
   return (
     <header className="w-full p-4 bg-white border-b border-gray-200">
       <div className="flex items-center justify-between">
-        <div className="flex items-center">
+        <div className="flex-1">
           {showBackButton && (
             <button 
               onClick={handleBackClick}
-              className="mr-2 text-gray-600 hover:text-gray-900 p-1"
+              className="text-gray-600 hover:text-gray-900 p-1"
               aria-label="Go back"
             >
               <ChevronLeft size={20} />
             </button>
           )}
+        </div>
+        
+        <div className="flex-1 text-center">
           <h1 className="text-xl font-bold text-gray-900">{title}</h1>
         </div>
         
-        {rightAction && (
-          <div className="flex items-center">
-            {rightAction}
-          </div>
-        )}
+        <div className="flex-1 flex justify-end">
+          {rightAction && rightAction}
+        </div>
       </div>
     </header>
   );
