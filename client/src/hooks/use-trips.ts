@@ -1,77 +1,61 @@
-import { useState, useEffect, useMemo } from 'react';
-import { Trip, TripCreationData } from '@shared/schema';
+import { useState, useEffect } from 'react';
+import { differenceInDays } from 'date-fns';
 import { localStorageService } from '@/lib/localStorageService';
+import { TripCreationData, Trip } from '@/shared/schema';
 
 export function useTrips() {
   const [trips, setTrips] = useState<Trip[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
 
-  // Load trips from localStorage on mount
+  // Fetch trips from localStorage
   useEffect(() => {
     try {
-      const loadedTrips = localStorageService.getTrips();
-      setTrips(loadedTrips);
-    } catch (error) {
-      console.error('Error loading trips:', error);
+      const storedTrips = localStorageService.getTrips();
+      setTrips(storedTrips);
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error('Failed to load trips'));
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   }, []);
 
-  // Sort trips by start date
-  const sortedTrips = useMemo(() => {
-    return [...trips].sort((a, b) => {
-      return new Date(a.startDate).getTime() - new Date(b.startDate).getTime();
-    });
-  }, [trips]);
-
-  // Current and upcoming trips
-  const upcomingTrips = useMemo(() => {
-    const now = new Date();
-    return sortedTrips.filter(trip => new Date(trip.endDate) >= now);
-  }, [sortedTrips]);
-
-  // Past trips
-  const pastTrips = useMemo(() => {
-    const now = new Date();
-    return sortedTrips.filter(trip => new Date(trip.endDate) < now)
-      .sort((a, b) => new Date(b.endDate).getTime() - new Date(a.endDate).getTime()); // Most recent first
-  }, [sortedTrips]);
-
-  // Get days until departure for a trip
+  // Calculate days until departure for a trip
   const getDaysUntilDeparture = (startDate: Date) => {
-    const now = new Date();
-    const start = new Date(startDate);
-    const diffTime = start.getTime() - now.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays > 0 ? diffDays : 0;
+    const today = new Date();
+    return differenceInDays(new Date(startDate), today);
   };
 
   // Create a new trip
   const createTrip = async (tripData: TripCreationData) => {
     try {
-      const newTrip = localStorageService.addTrip(tripData);
-      setTrips(prevTrips => [...prevTrips, newTrip]);
+      const newTrip = localStorageService.addTrip({
+        ...tripData,
+        progress: 0,
+      });
+      
+      setTrips(prev => [...prev, newTrip]);
       return newTrip;
-    } catch (error) {
-      console.error('Error creating trip:', error);
-      throw error;
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error('Failed to create trip'));
+      throw err;
     }
   };
 
-  // Update an existing trip
+  // Update a trip
   const updateTrip = async (tripId: number, tripData: Partial<Trip>) => {
     try {
       const updatedTrip = localStorageService.updateTrip(tripId, tripData);
       if (updatedTrip) {
-        setTrips(prevTrips => 
-          prevTrips.map(trip => trip.id === tripId ? updatedTrip : trip)
-        );
+        setTrips(prev => prev.map(trip => 
+          trip.id === tripId ? updatedTrip : trip
+        ));
+        return updatedTrip;
       }
-      return updatedTrip;
-    } catch (error) {
-      console.error('Error updating trip:', error);
-      throw error;
+      throw new Error('Trip not found');
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error('Failed to update trip'));
+      throw err;
     }
   };
 
@@ -80,29 +64,50 @@ export function useTrips() {
     try {
       const success = localStorageService.deleteTrip(tripId);
       if (success) {
-        setTrips(prevTrips => prevTrips.filter(trip => trip.id !== tripId));
+        setTrips(prev => prev.filter(trip => trip.id !== tripId));
+        return true;
       }
-      return success;
-    } catch (error) {
-      console.error('Error deleting trip:', error);
-      throw error;
+      throw new Error('Trip not found');
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error('Failed to delete trip'));
+      throw err;
     }
   };
 
-  // Get a specific trip by ID
-  const getTripById = (tripId: number) => {
-    return trips.find(trip => trip.id === tripId);
+  // Get upcoming trips
+  const getUpcomingTrips = () => {
+    return trips
+      .filter(trip => new Date(trip.startDate) >= new Date())
+      .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
+  };
+
+  // Get past trips
+  const getPastTrips = () => {
+    return trips
+      .filter(trip => new Date(trip.endDate) < new Date())
+      .sort((a, b) => new Date(b.endDate).getTime() - new Date(a.endDate).getTime());
+  };
+
+  // Get current trips
+  const getCurrentTrips = () => {
+    const today = new Date();
+    return trips
+      .filter(trip => 
+        new Date(trip.startDate) <= today && new Date(trip.endDate) >= today
+      )
+      .sort((a, b) => new Date(b.endDate).getTime() - new Date(a.endDate).getTime());
   };
 
   return {
     trips,
-    upcomingTrips,
-    pastTrips,
-    loading,
+    isLoading,
+    error,
     createTrip,
     updateTrip,
     deleteTrip,
-    getTripById,
+    getUpcomingTrips,
+    getPastTrips,
+    getCurrentTrips,
     getDaysUntilDeparture
   };
 }

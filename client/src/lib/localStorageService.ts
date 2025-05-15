@@ -1,307 +1,325 @@
-import { Trip, Item, Category, TripWeather, Settings } from '@shared/schema';
+import { Trip, Item, Category, TripWeather, Settings } from '@/shared/schema';
 
-// Storage keys
-const STORAGE_KEYS = {
-  TRIPS: 'baggle_trips',
-  ITEMS: 'baggle_items',
-  CATEGORIES: 'baggle_categories',
-  WEATHER: 'baggle_weather',
-  SETTINGS: 'baggle_settings'
-};
-
-// Default categories
-const DEFAULT_CATEGORIES: Category[] = [
-  { id: 1, name: 'Essentials' },
-  { id: 2, name: 'Clothing' },
-  { id: 3, name: 'Toiletries' },
-  { id: 4, name: 'Electronics' },
-  { id: 5, name: 'Documents' },
-];
-
-// LocalStorage wrapper with type safety
 class LocalStorageService {
   constructor() {
     this.initializeDefaults();
   }
 
-  // Initialize defaults if storage is empty
   private initializeDefaults(): void {
-    if (!this.getCategories().length) {
-      this.saveCategories(DEFAULT_CATEGORIES);
+    // Initialize trips array if it doesn't exist
+    if (!localStorage.getItem('trips')) {
+      localStorage.setItem('trips', JSON.stringify([]));
     }
-
-    if (!this.getSettings()) {
-      this.saveSettings({
+    
+    // Initialize items array if it doesn't exist
+    if (!localStorage.getItem('items')) {
+      localStorage.setItem('items', JSON.stringify([]));
+    }
+    
+    // Initialize categories if they don't exist
+    if (!localStorage.getItem('categories')) {
+      const defaultCategories: Category[] = [
+        { id: 1, name: 'Essentials' },
+        { id: 2, name: 'Clothing' },
+        { id: 3, name: 'Toiletries' },
+        { id: 4, name: 'Electronics' },
+        { id: 5, name: 'Documents' },
+        { id: 6, name: 'Miscellaneous' }
+      ];
+      localStorage.setItem('categories', JSON.stringify(defaultCategories));
+    }
+    
+    // Initialize weather data if it doesn't exist
+    if (!localStorage.getItem('weather')) {
+      localStorage.setItem('weather', JSON.stringify([]));
+    }
+    
+    // Initialize settings if they don't exist
+    if (!localStorage.getItem('settings')) {
+      const defaultSettings: Settings = {
         darkMode: false,
-        language: 'English'
-      });
+        language: 'en'
+      };
+      localStorage.setItem('settings', JSON.stringify(defaultSettings));
     }
   }
 
-  // Trips
+  // Trips methods
   getTrips(): Trip[] {
-    try {
-      const trips = localStorage.getItem(STORAGE_KEYS.TRIPS);
-      return trips ? JSON.parse(trips) : [];
-    } catch (error) {
-      console.error('Error retrieving trips from localStorage:', error);
-      return [];
-    }
+    const tripsJson = localStorage.getItem('trips') || '[]';
+    const trips = JSON.parse(tripsJson) as Trip[];
+    
+    // Convert date strings back to Date objects
+    return trips.map(trip => ({
+      ...trip,
+      startDate: new Date(trip.startDate),
+      endDate: new Date(trip.endDate),
+      createdAt: new Date(trip.createdAt)
+    }));
   }
-  
+
   saveTrips(trips: Trip[]): void {
-    try {
-      localStorage.setItem(STORAGE_KEYS.TRIPS, JSON.stringify(trips));
-    } catch (error) {
-      console.error('Error saving trips to localStorage:', error);
-    }
+    localStorage.setItem('trips', JSON.stringify(trips));
   }
-  
+
   addTrip(trip: Omit<Trip, 'id' | 'createdAt' | 'progress'>): Trip {
     const trips = this.getTrips();
+    const id = trips.length > 0 ? Math.max(...trips.map(t => t.id)) + 1 : 1;
+    
     const newTrip: Trip = {
       ...trip,
-      id: Date.now(),
+      id,
       createdAt: new Date(),
       progress: 0
     };
+    
     trips.push(newTrip);
     this.saveTrips(trips);
+    
     return newTrip;
   }
-  
+
   updateTrip(tripId: number, updatedTrip: Partial<Trip>): Trip | undefined {
     const trips = this.getTrips();
-    const index = trips.findIndex(t => t.id === tripId);
+    const tripIndex = trips.findIndex(trip => trip.id === tripId);
     
-    if (index === -1) return undefined;
+    if (tripIndex === -1) {
+      return undefined;
+    }
     
-    trips[index] = { ...trips[index], ...updatedTrip };
+    const updatedTripObj = {
+      ...trips[tripIndex],
+      ...updatedTrip
+    };
+    
+    trips[tripIndex] = updatedTripObj;
     this.saveTrips(trips);
-    return trips[index];
+    
+    return updatedTripObj;
   }
-  
+
   deleteTrip(tripId: number): boolean {
     const trips = this.getTrips();
-    const filteredTrips = trips.filter(t => t.id !== tripId);
+    const filteredTrips = trips.filter(trip => trip.id !== tripId);
     
-    if (filteredTrips.length === trips.length) return false;
+    if (filteredTrips.length === trips.length) {
+      return false;
+    }
     
     this.saveTrips(filteredTrips);
+    
+    // Also delete associated items
+    const items = this.getItems();
+    const filteredItems = items.filter(item => item.tripId !== tripId);
+    this.saveItems(filteredItems);
+    
+    // Delete associated weather data
+    const weather = this.getWeather();
+    const filteredWeather = weather.filter(w => w.tripId !== tripId);
+    this.saveWeather(filteredWeather);
+    
     return true;
   }
-  
-  // Items
+
+  // Items methods
   getItems(): Item[] {
-    try {
-      const items = localStorage.getItem(STORAGE_KEYS.ITEMS);
-      return items ? JSON.parse(items) : [];
-    } catch (error) {
-      console.error('Error retrieving items from localStorage:', error);
-      return [];
-    }
+    const itemsJson = localStorage.getItem('items') || '[]';
+    return JSON.parse(itemsJson) as Item[];
   }
-  
+
   saveItems(items: Item[]): void {
-    try {
-      localStorage.setItem(STORAGE_KEYS.ITEMS, JSON.stringify(items));
-    } catch (error) {
-      console.error('Error saving items to localStorage:', error);
-    }
+    localStorage.setItem('items', JSON.stringify(items));
   }
-  
+
   getItemsByTripId(tripId: number): Item[] {
-    return this.getItems().filter(item => item.tripId === tripId);
+    const items = this.getItems();
+    return items.filter(item => item.tripId === tripId);
   }
-  
+
   addItem(item: Omit<Item, 'id'>): Item {
     const items = this.getItems();
+    const id = items.length > 0 ? Math.max(...items.map(i => i.id)) + 1 : 1;
+    
     const newItem: Item = {
       ...item,
-      id: Date.now()
+      id
     };
+    
     items.push(newItem);
     this.saveItems(items);
+    
+    // Update trip progress
+    this.calculateTripProgress(item.tripId);
+    
     return newItem;
   }
-  
+
   updateItem(itemId: number, updatedItem: Partial<Item>): Item | undefined {
     const items = this.getItems();
-    const index = items.findIndex(i => i.id === itemId);
+    const itemIndex = items.findIndex(item => item.id === itemId);
     
-    if (index === -1) return undefined;
+    if (itemIndex === -1) {
+      return undefined;
+    }
     
-    items[index] = { ...items[index], ...updatedItem };
+    const updatedItemObj = {
+      ...items[itemIndex],
+      ...updatedItem
+    };
+    
+    items[itemIndex] = updatedItemObj;
     this.saveItems(items);
-    return items[index];
+    
+    // Update trip progress
+    this.calculateTripProgress(items[itemIndex].tripId);
+    
+    return updatedItemObj;
   }
-  
+
   deleteItem(itemId: number): boolean {
     const items = this.getItems();
-    const filteredItems = items.filter(i => i.id !== itemId);
+    const itemToDelete = items.find(item => item.id === itemId);
     
-    if (filteredItems.length === items.length) return false;
+    if (!itemToDelete) {
+      return false;
+    }
+    
+    const tripId = itemToDelete.tripId;
+    const filteredItems = items.filter(item => item.id !== itemId);
+    
+    if (filteredItems.length === items.length) {
+      return false;
+    }
     
     this.saveItems(filteredItems);
+    
+    // Update trip progress
+    this.calculateTripProgress(tripId);
+    
     return true;
   }
-  
-  // Categories
+
+  // Categories methods
   getCategories(): Category[] {
-    try {
-      const categories = localStorage.getItem(STORAGE_KEYS.CATEGORIES);
-      return categories ? JSON.parse(categories) : [];
-    } catch (error) {
-      console.error('Error retrieving categories from localStorage:', error);
-      return [];
-    }
+    const categoriesJson = localStorage.getItem('categories') || '[]';
+    return JSON.parse(categoriesJson) as Category[];
   }
-  
+
   saveCategories(categories: Category[]): void {
-    try {
-      localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(categories));
-    } catch (error) {
-      console.error('Error saving categories to localStorage:', error);
-    }
+    localStorage.setItem('categories', JSON.stringify(categories));
   }
-  
-  // Weather
+
+  // Weather methods
   getWeather(): TripWeather[] {
-    try {
-      const weather = localStorage.getItem(STORAGE_KEYS.WEATHER);
-      return weather ? JSON.parse(weather) : [];
-    } catch (error) {
-      console.error('Error retrieving weather from localStorage:', error);
-      return [];
-    }
+    const weatherJson = localStorage.getItem('weather') || '[]';
+    const weather = JSON.parse(weatherJson) as TripWeather[];
+    
+    // Convert date strings back to Date objects
+    return weather.map(w => ({
+      ...w,
+      date: new Date(w.date)
+    }));
   }
-  
+
   saveWeather(weather: TripWeather[]): void {
-    try {
-      localStorage.setItem(STORAGE_KEYS.WEATHER, JSON.stringify(weather));
-    } catch (error) {
-      console.error('Error saving weather to localStorage:', error);
-    }
+    localStorage.setItem('weather', JSON.stringify(weather));
   }
-  
+
   getWeatherByTripId(tripId: number): TripWeather[] {
-    return this.getWeather().filter(w => w.tripId === tripId);
+    const weather = this.getWeather();
+    return weather.filter(w => w.tripId === tripId);
   }
-  
+
   addWeather(weather: Omit<TripWeather, 'id'>): TripWeather {
-    const allWeather = this.getWeather();
+    const weatherData = this.getWeather();
+    const id = weatherData.length > 0 ? Math.max(...weatherData.map(w => w.id)) + 1 : 1;
+    
     const newWeather: TripWeather = {
       ...weather,
-      id: Date.now()
+      id
     };
-    allWeather.push(newWeather);
-    this.saveWeather(allWeather);
+    
+    weatherData.push(newWeather);
+    this.saveWeather(weatherData);
+    
     return newWeather;
   }
-  
-  // Settings
+
+  // Settings methods
   getSettings(): Settings | null {
-    try {
-      const settings = localStorage.getItem(STORAGE_KEYS.SETTINGS);
-      return settings ? JSON.parse(settings) : null;
-    } catch (error) {
-      console.error('Error retrieving settings from localStorage:', error);
-      return null;
-    }
+    const settingsJson = localStorage.getItem('settings');
+    return settingsJson ? JSON.parse(settingsJson) as Settings : null;
   }
-  
+
   saveSettings(settings: Settings): void {
-    try {
-      localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
-    } catch (error) {
-      console.error('Error saving settings to localStorage:', error);
-    }
+    localStorage.setItem('settings', JSON.stringify(settings));
   }
-  
-  // Calculate trip progress
+
+  // Utility methods
   calculateTripProgress(tripId: number): number {
     const items = this.getItemsByTripId(tripId);
-    if (!items.length) return 0;
+    
+    if (items.length === 0) {
+      return 0;
+    }
     
     const packedItems = items.filter(item => item.isPacked);
-    return Math.round((packedItems.length / items.length) * 100);
-  }
-  
-  // Clear all data
-  clearAll(): void {
-    try {
-      localStorage.removeItem(STORAGE_KEYS.TRIPS);
-      localStorage.removeItem(STORAGE_KEYS.ITEMS);
-      localStorage.removeItem(STORAGE_KEYS.CATEGORIES);
-      localStorage.removeItem(STORAGE_KEYS.WEATHER);
-      localStorage.removeItem(STORAGE_KEYS.SETTINGS);
-    } catch (error) {
-      console.error('Error clearing localStorage:', error);
+    const progress = Math.round((packedItems.length / items.length) * 100);
+    
+    // Update trip with new progress
+    const trips = this.getTrips();
+    const tripIndex = trips.findIndex(trip => trip.id === tripId);
+    
+    if (tripIndex !== -1) {
+      trips[tripIndex].progress = progress;
+      this.saveTrips(trips);
     }
+    
+    return progress;
   }
-  
-  // Calculate storage size
+
+  clearAll(): void {
+    localStorage.removeItem('trips');
+    localStorage.removeItem('items');
+    localStorage.removeItem('categories');
+    localStorage.removeItem('weather');
+    localStorage.removeItem('settings');
+    this.initializeDefaults();
+  }
+
   getStorageSize(): number {
     let totalSize = 0;
-    try {
-      Object.values(STORAGE_KEYS).forEach(key => {
-        const item = localStorage.getItem(key);
-        if (item) {
-          totalSize += item.length * 2; // approximate size in bytes (2 bytes per character)
-        }
-      });
-    } catch (error) {
-      console.error('Error calculating storage size:', error);
+    
+    // Calculate size of each item in localStorage
+    for (const key in localStorage) {
+      if (localStorage.hasOwnProperty(key)) {
+        totalSize += (localStorage[key].length * 2) / 1024; // Size in KB
+      }
     }
+    
     return totalSize;
   }
-  
-  // Generate demo trip for testing
+
+  // Method to generate a demo trip for testing
   generateDemoTrip(): Trip {
-    const demoTrip = this.addTrip({
-      destination: 'London',
-      location: { lat: 51.5074, lng: 0.1278 },
-      startDate: new Date('2025-04-12'),
-      endDate: new Date('2025-04-25'),
-      purpose: 'Vacation',
-      activities: ['Sightseeing', 'Museums']
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() + 7);
+    
+    const endDate = new Date(startDate);
+    endDate.setDate(endDate.getDate() + 5);
+    
+    const trip = this.addTrip({
+      destination: 'London, UK',
+      location: { lat: 51.5074, lng: -0.1278 },
+      startDate,
+      endDate,
+      purpose: 'vacation',
+      activities: ['sightseeing', 'shopping'],
+      progress: 0
     });
     
-    // Add some items to the trip
-    const essentialCategory = this.getCategories().find(c => c.name === 'Essentials')?.id ?? 1;
-    const clothingCategory = this.getCategories().find(c => c.name === 'Clothing')?.id ?? 2;
-    const electronicsCategory = this.getCategories().find(c => c.name === 'Electronics')?.id ?? 4;
-    
-    this.addItem({
-      tripId: demoTrip.id,
-      name: 'Passport',
-      categoryId: essentialCategory,
-      isPacked: false,
-      quantity: 1,
-      isCustom: false
-    });
-    
-    this.addItem({
-      tripId: demoTrip.id,
-      name: 'T-shirts',
-      categoryId: clothingCategory,
-      isPacked: false,
-      quantity: 5,
-      isCustom: false
-    });
-    
-    this.addItem({
-      tripId: demoTrip.id,
-      name: 'Phone charger',
-      categoryId: electronicsCategory,
-      isPacked: false,
-      quantity: 1,
-      isCustom: false
-    });
-    
-    return demoTrip;
+    return trip;
   }
 }
 
-// Export a singleton instance
 export const localStorageService = new LocalStorageService();

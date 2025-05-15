@@ -1,174 +1,250 @@
-import React, { useState } from 'react';
-import { navigate } from 'wouter/use-browser-location';
-import { TripCreationData } from '@shared/schema';
-import { useTrips } from '@/hooks/use-trips';
-import Header from '@/components/layout/header';
-import BottomNav from '@/components/layout/bottom-nav';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import React, { useState, useEffect } from 'react';
+import { useLocation } from 'wouter';
 import { format } from 'date-fns';
-import { CalendarIcon } from 'lucide-react';
+import { Calendar as CalendarIcon } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Calendar } from '@/components/ui/calendar';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { Input } from '@/components/ui/input';
+import Header from '@/components/layout/header';
+import ProgressBar from '@/components/trips/progress-bar';
+import LocationSearch from '@/components/trips/location-search';
+import WeatherForecast from '@/components/trips/weather-forecast';
+import { getWeatherForecast } from '@/lib/weather';
+import { useTrips } from '@/hooks/use-trips';
+
+// WeatherForecast interface
+interface WeatherForecast {
+  date: Date;
+  temperature: number;
+  condition: string;
+  icon: string;
+}
+
+// TripWizardData interface for tracking form state
+interface TripWizardData {
+  destination: string;
+  location: { lat: number; lng: number };
+  startDate: Date;
+  endDate: Date;
+  activities: string[];
+}
+
+// Default trip data
+const defaultTripData: TripWizardData = {
+  destination: '',
+  location: { lat: 0, lng: 0 },
+  startDate: new Date(),
+  endDate: new Date(new Date().setDate(new Date().getDate() + 7)),
+  activities: [],
+};
 
 export default function TripCreator() {
+  const [location, navigate] = useLocation();
   const { createTrip } = useTrips();
   
-  const [destination, setDestination] = useState('');
-  const [startDate, setStartDate] = useState<Date | undefined>(new Date());
-  const [endDate, setEndDate] = useState<Date | undefined>(
-    new Date(new Date().setDate(new Date().getDate() + 7)) // Default to +7 days
-  );
-  const [purpose, setPurpose] = useState('Vacation');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState('');
+  // Form state
+  const [formData, setFormData] = useState<TripWizardData>(defaultTripData);
+  const [locationInput, setLocationInput] = useState('');
+  const [weatherForecast, setWeatherForecast] = useState<WeatherForecast[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [currentStep, setCurrentStep] = useState(1);
+  const [isDateError, setIsDateError] = useState(false);
   
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Fetch weather forecast when location and dates are set
+  useEffect(() => {
+    const fetchWeather = async () => {
+      if (
+        formData.location.lat !== 0 &&
+        formData.location.lng !== 0 &&
+        formData.startDate &&
+        formData.endDate
+      ) {
+        setIsLoading(true);
+        try {
+          const forecast = await getWeatherForecast(
+            formData.location.lat,
+            formData.location.lng,
+            formData.startDate,
+            formData.endDate
+          );
+          setWeatherForecast(forecast);
+        } catch (error) {
+          console.error('Failed to fetch weather:', error);
+        } finally {
+          setIsLoading(false);
+        }
+      }
+    };
     
-    if (!destination || !startDate || !endDate) {
-      setError('Please fill in all required fields');
+    fetchWeather();
+  }, [formData.location, formData.startDate, formData.endDate]);
+  
+  // Validate dates
+  useEffect(() => {
+    if (formData.startDate && formData.endDate) {
+      if (formData.endDate < formData.startDate) {
+        setIsDateError(true);
+      } else {
+        setIsDateError(false);
+      }
+    }
+  }, [formData.startDate, formData.endDate]);
+  
+  // Handle location selection
+  const handleLocationSelect = (location: { placeName: string; lat: number; lng: number }) => {
+    setFormData({
+      ...formData,
+      destination: location.placeName,
+      location: { lat: location.lat, lng: location.lng },
+    });
+  };
+  
+  // Handle form submission
+  const handleNextStep = async () => {
+    // Validate form
+    if (!formData.destination || isDateError) {
       return;
     }
     
-    if (startDate > endDate) {
-      setError('Start date cannot be after end date');
+    if (currentStep === 1) {
+      // Move to next step in wizard
+      setCurrentStep(2);
       return;
     }
     
-    setIsSubmitting(true);
-    setError('');
-    
+    // Create trip
     try {
+      setIsLoading(true);
+      
       const tripData: TripCreationData = {
-        destination,
-        location: { lat: 0, lng: 0 }, // Would normally get real coordinates
-        startDate,
-        endDate,
-        purpose,
-        activities: []
+        destination: formData.destination,
+        location: formData.location,
+        startDate: formData.startDate,
+        endDate: formData.endDate,
+        purpose: 'vacation', // Default purpose
+        activities: formData.activities,
       };
       
-      const newTrip = await createTrip(tripData);
+      await createTrip(tripData);
       navigate('/');
-    } catch (err) {
-      console.error('Failed to create trip:', err);
-      setError('Failed to create trip. Please try again.');
+    } catch (error) {
+      console.error('Failed to create trip:', error);
     } finally {
-      setIsSubmitting(false);
+      setIsLoading(false);
     }
   };
   
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50">
-      <Header title="Create New Trip" showBackButton />
+    <div className="min-h-screen flex flex-col bg-gray-50">
+      <Header title="Baggle" showBackButton onBackClick={() => navigate('/')} />
       
-      <main className="flex-1 p-4">
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {error && (
-            <div className="bg-red-50 text-red-500 p-3 rounded-md text-sm">
-              {error}
+      <div className="p-4">
+        <ProgressBar currentStep={currentStep} totalSteps={2} />
+        
+        <div className="mt-6">
+          <h2 className="text-lg font-medium mb-3">Direction</h2>
+          <LocationSearch
+            value={locationInput}
+            onChange={setLocationInput}
+            onLocationSelect={handleLocationSelect}
+          />
+        </div>
+        
+        <div className="mt-6">
+          <h2 className="text-lg font-medium mb-3">Dates</h2>
+          
+          <div className="grid grid-cols-2 gap-4">
+            {/* Start Date */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">From</label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={`w-full justify-start text-left font-normal ${
+                      isDateError ? 'border-red-500' : ''
+                    }`}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {formData.startDate ? (
+                      format(formData.startDate, 'dd.MM.yyyy')
+                    ) : (
+                      <span>Pick a date</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <Calendar
+                    mode="single"
+                    selected={formData.startDate}
+                    onSelect={(date) => 
+                      setFormData({ ...formData, startDate: date || new Date() })
+                    }
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
+            
+            {/* End Date */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">To</label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={`w-full justify-start text-left font-normal ${
+                      isDateError ? 'border-red-500' : ''
+                    }`}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {formData.endDate ? (
+                      format(formData.endDate, 'dd.MM.yyyy')
+                    ) : (
+                      <span>Pick a date</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <Calendar
+                    mode="single"
+                    selected={formData.endDate}
+                    onSelect={(date) => 
+                      setFormData({ ...formData, endDate: date || new Date() })
+                    }
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+          </div>
+          
+          {isDateError && (
+            <p className="text-sm text-red-500 mt-1">
+              End date must be after or equal to start date
+            </p>
           )}
-          
-          {/* Destination */}
-          <div className="space-y-2">
-            <Label htmlFor="destination">Destination</Label>
-            <Input 
-              id="destination"
-              value={destination}
-              onChange={(e) => setDestination(e.target.value)}
-              placeholder="e.g. London, Paris, New York"
-              required
-            />
-          </div>
-          
-          {/* Start Date */}
-          <div className="space-y-2">
-            <Label htmlFor="start-date">Start Date</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className="w-full justify-start text-left font-normal"
-                  id="start-date"
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {startDate ? (
-                    format(startDate, 'PPP')
-                  ) : (
-                    <span>Pick a date</span>
-                  )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0">
-                <Calendar
-                  mode="single"
-                  selected={startDate}
-                  onSelect={setStartDate}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
-          
-          {/* End Date */}
-          <div className="space-y-2">
-            <Label htmlFor="end-date">End Date</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className="w-full justify-start text-left font-normal"
-                  id="end-date"
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {endDate ? (
-                    format(endDate, 'PPP')
-                  ) : (
-                    <span>Pick a date</span>
-                  )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0">
-                <Calendar
-                  mode="single"
-                  selected={endDate}
-                  onSelect={setEndDate}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
-          
-          {/* Purpose */}
-          <div className="space-y-2">
-            <Label htmlFor="purpose">Purpose</Label>
-            <select
-              id="purpose"
-              value={purpose}
-              onChange={(e) => setPurpose(e.target.value)}
-              className="w-full p-2 rounded-md border border-gray-300"
-            >
-              <option value="Vacation">Vacation</option>
-              <option value="Business">Business</option>
-              <option value="Family Visit">Family Visit</option>
-              <option value="Other">Other</option>
-            </select>
-          </div>
-          
+        </div>
+        
+        {/* Weather Forecast */}
+        <WeatherForecast forecast={weatherForecast} isLoading={isLoading} />
+        
+        {/* Next Button */}
+        <div className="mt-8">
           <Button 
-            type="submit" 
             className="w-full"
-            disabled={isSubmitting}
+            onClick={handleNextStep}
+            disabled={!formData.destination || isDateError || isLoading}
           >
-            {isSubmitting ? 'Creating Trip...' : 'Create Trip'}
+            Next
           </Button>
-        </form>
-      </main>
-      
-      <BottomNav />
+        </div>
+      </div>
     </div>
   );
 }
