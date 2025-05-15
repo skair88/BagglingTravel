@@ -1,5 +1,5 @@
 // Define interfaces locally
-interface Trip {
+export interface Trip {
   id: number;
   destination: string;
   location: { lat: number; lng: number };
@@ -11,7 +11,7 @@ interface Trip {
   progress: number;
 }
 
-interface Item {
+export interface Item {
   id: number;
   tripId: number;
   name: string;
@@ -21,7 +21,7 @@ interface Item {
   isCustom: boolean;
 }
 
-interface Category {
+export interface Category {
   id: number;
   name: string;
 }
@@ -247,6 +247,21 @@ class LocalStorageService {
 
   saveCategories(categories: Category[]): void {
     localStorage.setItem('categories', JSON.stringify(categories));
+  }
+  
+  /**
+   * Add a new category
+   */
+  addCategory(name: string): Category {
+    const categories = this.getCategories();
+    const id = categories.length > 0 ? Math.max(...categories.map(c => c.id)) + 1 : 1;
+    
+    const newCategory: Category = { id, name };
+    
+    categories.push(newCategory);
+    this.saveCategories(categories);
+    
+    return newCategory;
   }
 
   // Weather methods
