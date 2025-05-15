@@ -57,22 +57,22 @@ const LocationSearch: React.FC<LocationSearchProps> = ({
     setIsLoading(true);
     
     try {
-      // Импортируем функцию getLocation и isMapboxAvailable из lib/mapbox
-      const { getLocation, isMapboxAvailable } = await import('@/lib/mapbox');
+      // Import the getLocation and isMapboxAvailable from mapbox lib
+      const mapboxLib = await import('@/lib/mapbox');
       
-      // Проверяем доступность Mapbox API
-      if (isMapboxAvailable()) {
-        // Получаем локации через Mapbox API
-        const locations = await getLocation(query);
+      // Check if Mapbox API is available
+      if (mapboxLib.isMapboxAvailable()) {
+        // Get locations from Mapbox API
+        const locations = await mapboxLib.getLocation(query);
         
         if (locations && locations.length > 0) {
           setSuggestions(locations);
         } else {
-          // Если API не вернул результатов, сбрасываем предложения
+          // If API returns no results, clear suggestions
           setSuggestions([]);
         }
       } else {
-        // Если Mapbox недоступен (нет сети или ключа API), используем резервные данные
+        // If Mapbox is unavailable (no network or API key), use fallback data
         console.warn('Mapbox API is not available, using fallback data');
         const sampleLocations = [
           { placeName: 'London, UK', lat: 51.5074, lng: -0.1278 },
@@ -82,7 +82,7 @@ const LocationSearch: React.FC<LocationSearchProps> = ({
           { placeName: 'Sydney, Australia', lat: -33.8688, lng: 151.2093 }
         ];
         
-        // Фильтруем локации по запросу
+        // Filter locations by query
         const filteredLocations = sampleLocations.filter(location => 
           location.placeName.toLowerCase().includes(query.toLowerCase())
         );

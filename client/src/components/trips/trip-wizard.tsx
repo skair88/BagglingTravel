@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import WeatherCard from '@/components/ui/weather-card';
 import { Checkbox } from '@/components/ui/checkbox';
-import { getLocation } from '@/lib/mapbox';
+import * as mapbox from '@/lib/mapbox';
 import { getWeatherForecast } from '@/lib/weather';
 import Header from '@/components/layout/header';
 
@@ -31,25 +31,6 @@ const defaultTripData: TripWizardData = {
   activities: []
 };
 
-// Available trip purposes
-const tripPurposes = [
-  { id: 'vacation', icon: 'beach_access', label: 'Vacation' },
-  { id: 'business', icon: 'work', label: 'Business' },
-  { id: 'family', icon: 'family_restroom', label: 'Family Visit' },
-  { id: 'adventure', icon: 'hiking', label: 'Adventure' }
-];
-
-// Available activities
-const availableActivities = [
-  'Beach',
-  'Sightseeing',
-  'Museums',
-  'Hiking',
-  'Restaurants',
-  'Shopping',
-  'Nightlife',
-  'Sports'
-];
 
 interface WeatherForecast {
   date: Date;
@@ -76,11 +57,12 @@ const TripWizard: React.FC<TripWizardProps> = ({ onComplete }) => {
     
     setIsLoading(true);
     try {
-      const locationData = await getLocation(searchQuery);
-      if (locationData) {
+    const locationDataArray = await mapbox.getLocation(searchQuery);
+      if (locationDataArray && locationDataArray.length > 0) {
+        const locationData = locationDataArray[0]; 
         setTripData(prev => ({
           ...prev,
-          destination: locationData.placeName,
+          destination: locationData.placeName, 
           location: { lat: locationData.lat, lng: locationData.lng }
         }));
       }
