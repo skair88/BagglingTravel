@@ -24,9 +24,9 @@ const Header: React.FC<HeaderProps> = ({
   };
 
   return (
-    <header className="w-full p-4 bg-white border-b border-gray-200">
+    <header className="w-full p-4 bg-gray-100 border-b border-gray-200">
       <div className="flex items-center justify-between">
-        <div className="flex-1">
+        <div className="w-10">
           {showBackButton && (
             <button 
               onClick={handleBackClick}
@@ -38,11 +38,11 @@ const Header: React.FC<HeaderProps> = ({
           )}
         </div>
         
-        <div className="flex-1 text-center">
+        <div className="flex-1 flex justify-end pr-2">
           <h1 className="text-xl font-bold text-gray-900">{title}</h1>
         </div>
         
-        <div className="flex-1 flex justify-end">
+        <div className="w-10 flex justify-end">
           {rightAction && rightAction}
         </div>
       </div>

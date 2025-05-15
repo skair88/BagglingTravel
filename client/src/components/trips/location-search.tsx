@@ -56,32 +56,45 @@ const LocationSearch: React.FC<LocationSearchProps> = ({
     
     setIsLoading(true);
     
-    // Всегда предоставляем набор данных для демонстрации, независимо от запроса
-    // Это гарантирует, что пользователь всегда сможет продолжить работу с приложением
-    // В реальном приложении здесь был бы вызов API
-    setTimeout(() => {
-      const sampleLocations = [
-        { placeName: 'London, UK', lat: 51.5074, lng: -0.1278 },
-        { placeName: 'New York, NY, USA', lat: 40.7128, lng: -74.0060 },
-        { placeName: 'Paris, France', lat: 48.8566, lng: 2.3522 },
-        { placeName: 'Tokyo, Japan', lat: 35.6762, lng: 139.6503 },
-        { placeName: 'Sydney, Australia', lat: -33.8688, lng: 151.2093 }
-      ];
+    try {
+      // Импортируем функцию getLocation и isMapboxAvailable из lib/mapbox
+      const { getLocation, isMapboxAvailable } = await import('@/lib/mapbox');
       
-      // Фильтруем локации по запросу
-      const filteredLocations = sampleLocations.filter(location => 
-        location.placeName.toLowerCase().includes(query.toLowerCase())
-      );
-      
-      if (filteredLocations.length > 0) {
-        setSuggestions(filteredLocations);
+      // Проверяем доступность Mapbox API
+      if (isMapboxAvailable()) {
+        // Получаем локации через Mapbox API
+        const locations = await getLocation(query);
+        
+        if (locations && locations.length > 0) {
+          setSuggestions(locations);
+        } else {
+          // Если API не вернул результатов, сбрасываем предложения
+          setSuggestions([]);
+        }
       } else {
-        // Если нет совпадений, показываем все локации
-        setSuggestions(sampleLocations);
+        // Если Mapbox недоступен (нет сети или ключа API), используем резервные данные
+        console.warn('Mapbox API is not available, using fallback data');
+        const sampleLocations = [
+          { placeName: 'London, UK', lat: 51.5074, lng: -0.1278 },
+          { placeName: 'New York, NY, USA', lat: 40.7128, lng: -74.0060 },
+          { placeName: 'Paris, France', lat: 48.8566, lng: 2.3522 },
+          { placeName: 'Tokyo, Japan', lat: 35.6762, lng: 139.6503 },
+          { placeName: 'Sydney, Australia', lat: -33.8688, lng: 151.2093 }
+        ];
+        
+        // Фильтруем локации по запросу
+        const filteredLocations = sampleLocations.filter(location => 
+          location.placeName.toLowerCase().includes(query.toLowerCase())
+        );
+        
+        setSuggestions(filteredLocations.length > 0 ? filteredLocations : sampleLocations);
       }
-      
+    } catch (error) {
+      console.error('Error fetching locations:', error);
+      setSuggestions([]);
+    } finally {
       setIsLoading(false);
-    }, 300);
+    }
   };
   
   const handleSelectLocation = (location: Location) => {

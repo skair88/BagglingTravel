@@ -2,14 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { navigate } from 'wouter/use-browser-location';
 import { format } from 'date-fns';
-import { Calendar as CalendarIcon } from 'lucide-react';
+import { MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Calendar } from '@/components/ui/calendar';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
 import { Input } from '@/components/ui/input';
 import Header from '@/components/layout/header';
 import ProgressBar from '@/components/trips/progress-bar';
@@ -17,6 +11,7 @@ import LocationSearch from '@/components/trips/location-search';
 import WeatherForecast from '@/components/trips/weather-forecast';
 import { getWeatherForecast } from '@/lib/weather';
 import { useTrips } from '@/hooks/use-trips';
+import MobileDatePicker from '@/components/ui/mobile-date-picker';
 
 // WeatherForecast interface
 interface WeatherForecast {
@@ -163,79 +158,33 @@ export default function TripCreator() {
             {/* Start Date */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">From</label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={`w-full justify-start text-left font-normal ${
-                      isDateError ? 'border-red-500' : ''
-                    }`}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {formData.startDate ? (
-                      format(formData.startDate, 'dd.MM.yyyy')
-                    ) : (
-                      <span>Pick a date</span>
-                    )}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={formData.startDate}
-                    onSelect={(date) => {
-                      if (date) {
-                        setFormData({
-                          ...formData,
-                          startDate: date,
-                          // Если конечная дата меньше начальной, устанавливаем ее равной начальной
-                          endDate: formData.endDate < date ? date : formData.endDate
-                        });
-                      }
-                      document.body.click(); // Закрыть календарь после выбора
-                    }}
-                    defaultMonth={formData.startDate}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
+              <MobileDatePicker
+                selected={formData.startDate}
+                onSelect={(date) => {
+                  setFormData({
+                    ...formData,
+                    startDate: date,
+                    // Если конечная дата меньше начальной, устанавливаем ее равной начальной
+                    endDate: formData.endDate < date ? date : formData.endDate
+                  });
+                }}
+                className={isDateError ? 'border-red-500' : ''}
+                placeholder="Pick a date"
+              />
             </div>
             
             {/* End Date */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">To</label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={`w-full justify-start text-left font-normal ${
-                      isDateError ? 'border-red-500' : ''
-                    }`}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {formData.endDate ? (
-                      format(formData.endDate, 'dd.MM.yyyy')
-                    ) : (
-                      <span>Pick a date</span>
-                    )}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={formData.endDate}
-                    onSelect={(date) => {
-                      if (date) {
-                        setFormData({ ...formData, endDate: date });
-                      }
-                      document.body.click(); // Закрыть календарь после выбора
-                    }}
-                    defaultMonth={formData.startDate}
-                    fromDate={formData.startDate} // Запрещаем выбор даты до начальной
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
+              <MobileDatePicker
+                selected={formData.endDate}
+                onSelect={(date) => {
+                  setFormData({ ...formData, endDate: date });
+                }}
+                minDate={formData.startDate} // Запрещаем выбор даты до начальной
+                className={isDateError ? 'border-red-500' : ''}
+                placeholder="Pick a date"
+              />
             </div>
           </div>
           
