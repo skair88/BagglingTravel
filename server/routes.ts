@@ -16,11 +16,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Proxy API for Mapbox geocoding
   app.get("/api/mapbox/geocoding", async (req, res) => {
+    console.log("Received geocoding request:", {
+      query: req.query.query,
+      limit: req.query.limit,
+      language: req.query.language
+    });
+    
     const query = req.query.query;
     const limit = req.query.limit || 5;
     const language = req.query.language || 'en';
     
     if (!query) {
+      console.log("Request rejected: missing query parameter");
       return res.status(400).json({ error: 'Missing query parameter' });
     }
     

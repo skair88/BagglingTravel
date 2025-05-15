@@ -169,17 +169,20 @@ export async function getLocation(
     console.log("Fetching locations via proxy with query:", query);
     
     const url = `${API_URL}/mapbox/geocoding?query=${encodeURIComponent(query)}&limit=${limit}&language=${language}`;
+    console.log("Request URL:", url);
     
     const response = await fetch(url);
-    
     console.log("Response status:", response.status, response.statusText);
     
+    const responseText = await response.text();
+    console.log("Raw response:", responseText);
+    
     if (!response.ok) {
-      throw new Error(`API error: ${response.statusText}`);
+      throw new Error(`API error: ${response.statusText} - ${responseText}`);
     }
     
-    const locations = await response.json() as { placeName: string; lat: number; lng: number }[];
-    console.log("Response locations:", locations);
+    const locations = JSON.parse(responseText) as { placeName: string; lat: number; lng: number }[];
+    console.log("Parsed locations:", locations);
     
     if (!locations || locations.length === 0) {
       console.log("No locations found in response");
@@ -189,6 +192,7 @@ export async function getLocation(
     return locations;
   } catch (error) {
     console.error("Error fetching locations:", error);
+    console.error("Error details:", error instanceof Error ? error.message : String(error));
     return [];
   }
 }
