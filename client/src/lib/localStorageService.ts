@@ -102,7 +102,7 @@ class LocalStorageService {
     localStorage.setItem('trips', JSON.stringify(trips));
   }
 
-  addTrip(trip: Omit<Trip, 'id' | 'createdAt' | 'progress'>): Trip {
+  addTrip(trip: Omit<Trip, 'id' | 'createdAt'> & { progress?: number }): Trip {
     const trips = this.getTrips();
     const id = trips.length > 0 ? Math.max(...trips.map(t => t.id)) + 1 : 1;
     
@@ -110,7 +110,7 @@ class LocalStorageService {
       ...trip,
       id,
       createdAt: new Date(),
-      progress: 0
+      progress: trip.progress !== undefined ? trip.progress : 0
     };
     
     trips.push(newTrip);

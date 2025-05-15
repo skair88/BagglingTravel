@@ -2,13 +2,24 @@ import React, { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { navigate } from 'wouter/use-browser-location';
 import { format } from 'date-fns';
-import { MapPin } from 'lucide-react';
+import { 
+  MapPin, 
+  Umbrella, 
+  Backpack, 
+  Camera, 
+  Mountain, 
+  Waves, 
+  UtensilsCrossed, 
+  Building2, 
+  Tent
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import Header from '@/components/layout/header';
 import ProgressBar from '@/components/trips/progress-bar';
 import LocationSearch from '@/components/trips/location-search';
 import WeatherForecast from '@/components/trips/weather-forecast';
+import ActivitySelector from '@/components/trips/activity-selector';
 import { getWeatherForecast } from '@/lib/weather';
 import { useTrips } from '@/hooks/use-trips';
 import MobileDatePicker from '@/components/ui/mobile-date-picker';
@@ -39,6 +50,18 @@ const defaultTripData: TripWizardData = {
   activities: [],
 };
 
+// Доступные активности для выбора
+const activityOptions = [
+  { id: 'beach', name: 'Beach', icon: <Umbrella size={24} /> },
+  { id: 'hiking', name: 'Hiking', icon: <Mountain size={24} /> },
+  { id: 'sightseeing', name: 'Sightseeing', icon: <Camera size={24} /> },
+  { id: 'swimming', name: 'Swimming', icon: <Waves size={24} /> },
+  { id: 'dining', name: 'Dining', icon: <UtensilsCrossed size={24} /> },
+  { id: 'museums', name: 'Museums', icon: <Building2 size={24} /> },
+  { id: 'camping', name: 'Camping', icon: <Tent size={24} /> },
+  { id: 'adventure', name: 'Adventure', icon: <Backpack size={24} /> },
+];
+
 export default function TripCreator() {
   const location = useLocation();
   const { createTrip } = useTrips();
@@ -50,6 +73,7 @@ export default function TripCreator() {
   const [isLoading, setIsLoading] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [isDateError, setIsDateError] = useState(false);
+  const [selectedActivities, setSelectedActivities] = useState<string[]>([]);
   
   // Fetch weather forecast when location and dates are set
   useEffect(() => {
@@ -145,6 +169,15 @@ export default function TripCreator() {
       ...formData,
       destination: location.placeName,
       location: { lat: location.lat, lng: location.lng },
+    });
+  };
+  
+  // Handle activities selection
+  const handleActivitiesChange = (selectedIds: string[]) => {
+    setSelectedActivities(selectedIds);
+    setFormData({
+      ...formData,
+      activities: selectedIds
     });
   };
   
@@ -245,6 +278,13 @@ export default function TripCreator() {
         
         {/* Weather Forecast */}
         <WeatherForecast forecast={weatherForecast} isLoading={isLoading} />
+        
+        {/* Activities Selection */}
+        <ActivitySelector 
+          options={activityOptions}
+          selectedActivities={selectedActivities}
+          onChange={handleActivitiesChange}
+        />
         
         {/* Next Button */}
         <div className="mt-8">
