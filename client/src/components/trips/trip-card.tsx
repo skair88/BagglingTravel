@@ -29,7 +29,7 @@ const TripCard: React.FC<TripCardProps> = ({
   };
 
   const handleClick = () => {
-    navigate(`/trip/${trip.id}`);
+    navigate(`/trip/${trip.id}/packing`);
   };
 
   return (

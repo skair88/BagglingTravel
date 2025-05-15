@@ -1,25 +1,40 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation, useParams } from 'wouter';
+import { useParams } from 'wouter';
 import { navigate } from 'wouter/use-browser-location';
-import { Plus, ChevronLeft } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import Header from '@/components/layout/header';
 import PackingList from '@/components/packing/packing-list';
-import { Item, Category } from '@/lib/localStorageService';
-import { generatePackingList, getDefaultCategories } from '@/lib/packing-templates';
+import { useItems } from '@/hooks/use-items';
 import { localStorageService } from '@/lib/localStorageService';
 
 export default function PackingListPage() {
   const params = useParams<{ id: string }>();
   const tripId = parseInt(params.id, 10);
   
-  const [items, setItems] = useState<Item[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [trip, setTrip] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const {
+    items,
+    categories,
+    loading,
+    error,
+    progress,
+    toggleItem,
+    updateQuantity,
+    addItem,
+    removeItem
+  } = useItems(tripId);
+  
+  // Get trip data
+  const [trip, setTrip] = useState<{destination: string} | null>(null);
+  
+  useEffect(() => {
+    if (!isNaN(tripId)) {
+      const tripData = localStorageService.getTrips().find(t => t.id === tripId);
+      setTrip(tripData ? {destination: tripData.destination} : {destination: 'Packing List'});
+    }
+  }, [tripId]);
   
   // New item dialog state
   const [isAddItemOpen, setIsAddItemOpen] = useState(false);
@@ -27,104 +42,10 @@ export default function PackingListPage() {
   const [newItemCategory, setNewItemCategory] = useState<number>(0);
   const [newItemQuantity, setNewItemQuantity] = useState(1);
   
-  // Load initial data
-  useEffect(() => {
-    if (isNaN(tripId)) {
-      setError('Invalid trip ID');
-      setLoading(false);
-      return;
-    }
-
-    try {
-      // Get trip details
-      const tripData = localStorageService.getTrips().find(t => t.id === tripId);
-      if (!tripData) {
-        setError('Trip not found');
-        setLoading(false);
-        return;
-      }
-      setTrip(tripData);
-      
-      // Get categories
-      let cats = localStorageService.getCategories();
-      if (cats.length === 0) {
-        // Initialize default categories if none exist
-        cats = getDefaultCategories();
-        cats.forEach(cat => localStorageService.addCategory(cat.name));
-        cats = localStorageService.getCategories();
-      }
-      setCategories(cats);
-      
-      // Get items for this trip
-      let tripItems = localStorageService.getItemsByTripId(tripId);
-      
-      // If no items exist, generate a packing list based on trip data
-      if (tripItems.length === 0) {
-        // Get temperature data from trip weather if available
-        const tripWeather = localStorageService.getWeatherByTripId(tripId);
-        const temperatures = tripWeather.map(w => w.temperature);
-        
-        const generatedItems = generatePackingList(
-          tripId,
-          tripData.purpose,
-          tripData.activities,
-          tripData.startDate,
-          tripData.endDate,
-          temperatures
-        );
-        
-        // Save generated items
-        generatedItems.forEach(item => {
-          localStorageService.addItem(item);
-        });
-        
-        // Get the saved items with proper IDs
-        tripItems = localStorageService.getItemsByTripId(tripId);
-      }
-      
-      setItems(tripItems);
-    } catch (err) {
-      console.error('Error loading packing list data:', err);
-      setError('Failed to load packing list');
-    } finally {
-      setLoading(false);
-    }
-  }, [tripId]);
-  
-  // Handle toggling an item's packed state
-  const handleToggleItem = (item: Item) => {
-    const updatedItem = { ...item, isPacked: !item.isPacked };
-    const result = localStorageService.updateItem(item.id, updatedItem);
-    
-    if (result) {
-      setItems(items.map(i => i.id === item.id ? updatedItem : i));
-      
-      // Recalculate trip progress
-      localStorageService.calculateTripProgress(tripId);
-    }
-  };
-  
-  // Handle updating an item's quantity
-  const handleUpdateQuantity = (item: Item, newQuantity: number) => {
-    const updatedItem = { ...item, quantity: newQuantity };
-    const result = localStorageService.updateItem(item.id, updatedItem);
-    
-    if (result) {
-      setItems(items.map(i => i.id === item.id ? updatedItem : i));
-    }
-  };
-  
-  // Handle removing an item
-  const handleRemoveItem = (itemId: number) => {
-    const result = localStorageService.deleteItem(itemId);
-    
-    if (result) {
-      setItems(items.filter(i => i.id !== itemId));
-      
-      // Recalculate trip progress
-      localStorageService.calculateTripProgress(tripId);
-    }
-  };
+  // Handler functions
+  const handleToggleItem = toggleItem;
+  const handleUpdateQuantity = updateQuantity;
+  const handleRemoveItem = removeItem;
   
   // Handle adding a new custom item
   const handleAddItem = (categoryId: number) => {
@@ -136,7 +57,7 @@ export default function PackingListPage() {
   const saveNewItem = () => {
     if (!newItemName.trim()) return;
     
-    const newItem: Omit<Item, 'id'> = {
+    const newItem = {
       tripId,
       name: newItemName.trim(),
       categoryId: newItemCategory,
@@ -145,21 +66,16 @@ export default function PackingListPage() {
       isCustom: true
     };
     
-    const savedItem = localStorageService.addItem(newItem);
+    addItem(newItem);
     
-    if (savedItem) {
-      setItems([...items, savedItem]);
-      
-      // Reset form
-      setNewItemName('');
-      setNewItemQuantity(1);
-      setIsAddItemOpen(false);
-    }
+    // Reset form
+    setNewItemName('');
+    setNewItemQuantity(1);
+    setIsAddItemOpen(false);
   };
   
-  // Calculate packing progress
+  // Calculate packing progress count for display
   const packedCount = items.filter(item => item.isPacked).length;
-  const progress = items.length > 0 ? Math.round((packedCount / items.length) * 100) : 0;
   
   if (loading) {
     return (

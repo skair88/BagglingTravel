@@ -1,155 +1,138 @@
-import { useState, useEffect, useMemo } from 'react';
-import { Item, Category } from '@shared/schema';
+import { useState, useEffect } from 'react';
+import { Item, Category } from '@/lib/localStorageService';
 import { localStorageService } from '@/lib/localStorageService';
+import { generatePackingList, getDefaultCategories } from '@/lib/packing-templates';
 
 export function useItems(tripId?: number) {
   const [items, setItems] = useState<Item[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Load items and categories from localStorage on mount
+  // Load items and categories
   useEffect(() => {
-    try {
-      const loadedCategories = localStorageService.getCategories();
-      setCategories(loadedCategories);
+    if (!tripId) {
+      setLoading(false);
+      return;
+    }
 
-      if (tripId) {
-        const tripItems = localStorageService.getItemsByTripId(tripId);
-        setItems(tripItems);
-      } else {
-        const allItems = localStorageService.getItems();
-        setItems(allItems);
+    try {
+      // Load categories
+      let cats = localStorageService.getCategories();
+      if (cats.length === 0) {
+        // Initialize default categories if none exist
+        cats = getDefaultCategories();
+        cats.forEach(cat => localStorageService.addCategory(cat.name));
+        cats = localStorageService.getCategories();
       }
-    } catch (error) {
-      console.error('Error loading items:', error);
+      setCategories(cats);
+      
+      // Load items for this trip
+      let tripItems = localStorageService.getItemsByTripId(tripId);
+      
+      // If no items exist, generate a packing list based on trip data
+      if (tripItems.length === 0) {
+        const trip = localStorageService.getTrips().find(t => t.id === tripId);
+        
+        if (trip) {
+          // Get temperature data from trip weather if available
+          const tripWeather = localStorageService.getWeatherByTripId(tripId);
+          const temperatures = tripWeather.map(w => w.temperature);
+          
+          const generatedItems = generatePackingList(
+            tripId,
+            trip.purpose,
+            trip.activities,
+            trip.startDate,
+            trip.endDate,
+            temperatures
+          );
+          
+          // Save generated items
+          generatedItems.forEach(item => {
+            localStorageService.addItem(item);
+          });
+          
+          // Get the saved items with proper IDs
+          tripItems = localStorageService.getItemsByTripId(tripId);
+        }
+      }
+      
+      setItems(tripItems);
+    } catch (err) {
+      console.error('Error loading packing list data:', err);
+      setError('Failed to load packing items');
     } finally {
       setLoading(false);
     }
   }, [tripId]);
 
-  // Items grouped by category
-  const itemsByCategory = useMemo(() => {
-    return categories.map(category => {
-      const categoryItems = items.filter(item => item.categoryId === category.id);
-      return {
-        category,
-        items: categoryItems
-      };
-    }).filter(group => group.items.length > 0);
-  }, [items, categories]);
+  // Toggle item packed status
+  const toggleItem = (item: Item) => {
+    const updatedItem = { ...item, isPacked: !item.isPacked };
+    const result = localStorageService.updateItem(item.id, updatedItem);
+    
+    if (result) {
+      setItems(prevItems => 
+        prevItems.map(i => i.id === item.id ? updatedItem : i)
+      );
+    }
+    
+    return result;
+  };
 
-  // Calculate packing progress
-  const packingProgress = useMemo(() => {
-    if (items.length === 0) return 0;
-    const packedItems = items.filter(item => item.isPacked);
-    return Math.round((packedItems.length / items.length) * 100);
-  }, [items]);
+  // Update item quantity
+  const updateQuantity = (item: Item, newQuantity: number) => {
+    if (newQuantity < 1) return false;
+    
+    const updatedItem = { ...item, quantity: newQuantity };
+    const result = localStorageService.updateItem(item.id, updatedItem);
+    
+    if (result) {
+      setItems(prevItems => 
+        prevItems.map(i => i.id === item.id ? updatedItem : i)
+      );
+    }
+    
+    return result;
+  };
 
   // Add a new item
-  const addItem = async (item: Omit<Item, 'id'>) => {
-    try {
-      const newItem = localStorageService.addItem(item);
-      setItems(prevItems => [...prevItems, newItem]);
-      
-      // Update trip progress if tripId is provided
-      if (tripId) {
-        const progress = localStorageService.calculateTripProgress(tripId);
-        const trips = localStorageService.getTrips();
-        const trip = trips.find(t => t.id === tripId);
-        if (trip) {
-          localStorageService.updateTrip(tripId, { progress });
-        }
-      }
-      
-      return newItem;
-    } catch (error) {
-      console.error('Error adding item:', error);
-      throw error;
+  const addItem = (newItem: Omit<Item, 'id'>) => {
+    const savedItem = localStorageService.addItem(newItem);
+    
+    if (savedItem) {
+      setItems(prevItems => [...prevItems, savedItem]);
     }
+    
+    return savedItem;
   };
 
-  // Toggle item packed status
-  const toggleItemPacked = async (itemId: number) => {
-    try {
-      const item = items.find(i => i.id === itemId);
-      if (!item) return null;
-      
-      const updatedItem = localStorageService.updateItem(itemId, { 
-        isPacked: !item.isPacked 
-      });
-      
-      if (updatedItem) {
-        setItems(prevItems => 
-          prevItems.map(item => item.id === itemId ? updatedItem : item)
-        );
-        
-        // Update trip progress if tripId is provided
-        if (tripId) {
-          const progress = localStorageService.calculateTripProgress(tripId);
-          const trips = localStorageService.getTrips();
-          const trip = trips.find(t => t.id === tripId);
-          if (trip) {
-            localStorageService.updateTrip(tripId, { progress });
-          }
-        }
-      }
-      
-      return updatedItem;
-    } catch (error) {
-      console.error('Error toggling item:', error);
-      throw error;
+  // Remove an item
+  const removeItem = (itemId: number) => {
+    const result = localStorageService.deleteItem(itemId);
+    
+    if (result) {
+      setItems(prevItems => prevItems.filter(i => i.id !== itemId));
     }
+    
+    return result;
   };
 
-  // Update an item
-  const updateItem = async (itemId: number, updatedData: Partial<Item>) => {
-    try {
-      const updatedItem = localStorageService.updateItem(itemId, updatedData);
-      if (updatedItem) {
-        setItems(prevItems => 
-          prevItems.map(item => item.id === itemId ? updatedItem : item)
-        );
-      }
-      return updatedItem;
-    } catch (error) {
-      console.error('Error updating item:', error);
-      throw error;
-    }
-  };
-
-  // Delete an item
-  const deleteItem = async (itemId: number) => {
-    try {
-      const success = localStorageService.deleteItem(itemId);
-      if (success) {
-        setItems(prevItems => prevItems.filter(item => item.id !== itemId));
-        
-        // Update trip progress if tripId is provided
-        if (tripId) {
-          const progress = localStorageService.calculateTripProgress(tripId);
-          const trips = localStorageService.getTrips();
-          const trip = trips.find(t => t.id === tripId);
-          if (trip) {
-            localStorageService.updateTrip(tripId, { progress });
-          }
-        }
-      }
-      return success;
-    } catch (error) {
-      console.error('Error deleting item:', error);
-      throw error;
-    }
-  };
+  // Calculate packing progress
+  const progress = items.length > 0
+    ? Math.round((items.filter(i => i.isPacked).length / items.length) * 100)
+    : 0;
 
   return {
     items,
     categories,
-    itemsByCategory,
-    packingProgress,
     loading,
+    error,
+    progress,
+    toggleItem,
+    updateQuantity,
     addItem,
-    toggleItemPacked,
-    updateItem,
-    deleteItem
+    removeItem
   };
 }
