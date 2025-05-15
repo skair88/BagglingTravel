@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Input } from '@/components/ui/input';
 import { MapPin } from 'lucide-react';
-import { getLocation, isMapboxAvailable } from '@/lib/mapbox';
+import { searchLocations, getCoordinates } from '@/lib/mapbox';
 
+// Интерфейс для представления локации
 interface Location {
   placeName: string;
   lat: number;
@@ -24,6 +25,7 @@ const LocationSearch: React.FC<LocationSearchProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const searchTimeout = useRef<NodeJS.Timeout | null>(null);
   
   // Close suggestions when clicking outside
   useEffect(() => {
@@ -36,6 +38,10 @@ const LocationSearch: React.FC<LocationSearchProps> = ({
     document.addEventListener('mousedown', handleClickOutside);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
+      // Clear any pending timeout when component unmounts
+      if (searchTimeout.current) {
+        clearTimeout(searchTimeout.current);
+      }
     };
   }, []);
   
@@ -43,8 +49,16 @@ const LocationSearch: React.FC<LocationSearchProps> = ({
     const newValue = e.target.value;
     onChange(newValue);
     
+    // Clear previous timeout
+    if (searchTimeout.current) {
+      clearTimeout(searchTimeout.current);
+    }
+    
     if (newValue.length > 2) {
-      fetchLocations(newValue);
+      // Add small delay to avoid making too many requests while typing
+      searchTimeout.current = setTimeout(() => {
+        fetchLocations(newValue);
+      }, 300);
       setIsOpen(true);
     } else {
       setSuggestions([]);
@@ -58,34 +72,15 @@ const LocationSearch: React.FC<LocationSearchProps> = ({
     setIsLoading(true);
     
     try {
-      // Check if Mapbox API is available
-      if (isMapboxAvailable()) {
-        // Get locations from Mapbox API
-        const locations = await getLocation(query);
-        
-        if (locations && locations.length > 0) {
-          setSuggestions(locations);
-        } else {
-          // If API returns no results, clear suggestions
-          setSuggestions([]);
-        }
+      // Try using our API endpoint which wraps Mapbox API
+      const response = await fetch(`/api/geocode?query=${encodeURIComponent(query)}`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        setSuggestions(data);
       } else {
-        // If Mapbox is unavailable (no network or API key), use fallback data
-        console.warn('Mapbox API is not available, using fallback data');
-        const sampleLocations = [
-          { placeName: 'London, UK', lat: 51.5074, lng: -0.1278 },
-          { placeName: 'New York, NY, USA', lat: 40.7128, lng: -74.0060 },
-          { placeName: 'Paris, France', lat: 48.8566, lng: 2.3522 },
-          { placeName: 'Tokyo, Japan', lat: 35.6762, lng: 139.6503 },
-          { placeName: 'Sydney, Australia', lat: -33.8688, lng: 151.2093 }
-        ];
-        
-        // Filter locations by query
-        const filteredLocations = sampleLocations.filter(location => 
-          location.placeName.toLowerCase().includes(query.toLowerCase())
-        );
-        
-        setSuggestions(filteredLocations.length > 0 ? filteredLocations : []);
+        console.error('Server API route failed, no fallback available');
+        setSuggestions([]);
       }
     } catch (error) {
       console.error('Error fetching locations:', error);

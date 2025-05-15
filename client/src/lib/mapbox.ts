@@ -1,17 +1,15 @@
 /**
- * Functions for working with Mapbox API via server proxy
+ * Функции для работы с Mapbox API
  */
 
-// Base URL for our server API proxy
-const API_URL = "/api";
+// Базовый URL для Mapbox API
+const MAPBOX_API_URL = "https://api.mapbox.com";
 
-// Check if network is available
-export function isMapboxAvailable() {
-  return navigator.onLine;
-}
+// API ключ Mapbox берем из переменных окружения
+const MAPBOX_API_KEY = process.env.MAPBOX_API_KEY;
 
 /**
- * Interface for geocoding results
+ * Интерфейс для результатов геокодирования
  */
 export interface GeocodeResult {
   id: string;
@@ -24,7 +22,7 @@ export interface GeocodeResult {
 }
 
 /**
- * Interface for location search results
+ * Интерфейс для результатов поиска локаций по запросу
  */
 export interface LocationSuggestion {
   id: string;
@@ -33,10 +31,10 @@ export interface LocationSuggestion {
 }
 
 /**
- * Search for locations by user query
- * @param query Search query text
- * @param limit Maximum number of results (default 5)
- * @param language Result language (supports 'ru' and 'en')
+ * Поиск локаций по запросу пользователя
+ * @param query Текст запроса для поиска локаций
+ * @param limit Максимальное количество результатов (по умолчанию 5)
+ * @param language Язык результатов (поддерживаются 'ru' и 'en')
  */
 export async function searchLocations(
   query: string,
@@ -44,155 +42,125 @@ export async function searchLocations(
   language: string = "en"
 ): Promise<LocationSuggestion[]> {
   try {
-    // Use our proxy API
+    // Используем geocoding API для поиска мест по запросу
     const response = await fetch(
-      `${API_URL}/mapbox/geocoding?query=${encodeURIComponent(query)}&limit=${limit}&language=${language}`
+      `${MAPBOX_API_URL}/geocoding/v5/mapbox.places/${encodeURIComponent(
+        query
+      )}.json?access_token=${MAPBOX_API_KEY}&limit=${limit}&language=${language}`
     );
 
     if (!response.ok) {
-      throw new Error(`API error: ${response.statusText}`);
+      throw new Error(`Mapbox API error: ${response.statusText}`);
     }
 
     const data = await response.json();
-    
-    if (!data || !Array.isArray(data)) {
-      return [];
-    }
 
-    // Transform the results into LocationSuggestion format
-    return data.map((location: any) => ({
-      id: location.id || String(Math.random()),
-      name: location.placeName.split(',')[0],
-      fullName: location.placeName,
+    // Преобразуем результаты в формат LocationSuggestion
+    return data.features.map((feature: any) => ({
+      id: feature.id,
+      name: feature.text,
+      fullName: feature.place_name,
     }));
   } catch (error) {
     console.error("Error searching locations:", error);
-    return [];
+    throw new Error(
+      `Failed to search locations: ${
+        error instanceof Error ? error.message : "Unknown error"
+      }`
+    );
   }
 }
 
 /**
- * Get information about a location by coordinates
- * @param longitude Longitude
- * @param latitude Latitude
- * @param language Result language (supports 'ru' and 'en')
+ * Получение информации о локации по координатам
+ * @param longitude Долгота
+ * @param latitude Широта
+ * @param language Язык результатов (поддерживаются 'ru' и 'en')
  */
 export async function reverseGeocode(
   longitude: number,
   latitude: number,
   language: string = "en"
-): Promise<GeocodeResult | null> {
+): Promise<GeocodeResult> {
   try {
-    // Use our proxy API
-    const query = `${longitude},${latitude}`;
     const response = await fetch(
-      `${API_URL}/mapbox/geocoding?query=${query}&limit=1&language=${language}`
+      `${MAPBOX_API_URL}/geocoding/v5/mapbox.places/${longitude},${latitude}.json?access_token=${MAPBOX_API_KEY}&language=${language}`
     );
 
     if (!response.ok) {
-      throw new Error(`API error: ${response.statusText}`);
+      throw new Error(`Mapbox API error: ${response.statusText}`);
     }
 
     const data = await response.json();
-    
-    if (!data || !Array.isArray(data) || data.length === 0) {
-      return null;
+    const feature = data.features[0]; // Берем первый (самый точный) результат
+
+    // Извлекаем информацию о стране, регионе и городе
+    let country = "";
+    let region = "";
+    let city = "";
+
+    for (const context of feature.context || []) {
+      if (context.id.startsWith("country")) {
+        country = context.text;
+      } else if (context.id.startsWith("region")) {
+        region = context.text;
+      } else if (context.id.startsWith("place")) {
+        city = context.text;
+      }
     }
-    
-    const location = data[0];
-    
+
     return {
-      id: String(Math.random()),
-      name: location.placeName.split(',')[0],
-      placeName: location.placeName,
-      center: [location.lng, location.lat],
-      country: location.placeName.split(',').pop()?.trim() || "",
-      region: "",
-      city: location.placeName.split(',')[0],
+      id: feature.id,
+      name: feature.text,
+      placeName: feature.place_name,
+      center: feature.center,
+      country,
+      region,
+      city,
     };
   } catch (error) {
     console.error("Error in reverse geocoding:", error);
-    return null;
+    throw new Error(
+      `Failed to reverse geocode: ${
+        error instanceof Error ? error.message : "Unknown error"
+      }`
+    );
   }
 }
 
 /**
- * Get coordinates for a given place name
- * @param placeName Place name (city, country, etc.)
- * @param language Language for results (supports 'ru' and 'en')
+ * Получение координат для заданного места
+ * @param placeName Название места (город, страна и т.д.)
+ * @param language Язык запроса (поддерживаются 'ru' и 'en')
  */
 export async function getCoordinates(
   placeName: string,
   language: string = "en"
-): Promise<[number, number] | null> {
+): Promise<[number, number]> {
   try {
-    // Use our proxy API
     const response = await fetch(
-      `${API_URL}/mapbox/geocoding?query=${encodeURIComponent(placeName)}&limit=1&language=${language}`
+      `${MAPBOX_API_URL}/geocoding/v5/mapbox.places/${encodeURIComponent(
+        placeName
+      )}.json?access_token=${MAPBOX_API_KEY}&limit=1&language=${language}`
     );
 
     if (!response.ok) {
-      throw new Error(`API error: ${response.statusText}`);
+      throw new Error(`Mapbox API error: ${response.statusText}`);
     }
 
     const data = await response.json();
 
-    if (!data || !Array.isArray(data) || data.length === 0) {
-      return null;
+    if (!data.features || data.features.length === 0) {
+      throw new Error(`No results found for location: ${placeName}`);
     }
 
-    const location = data[0];
-    return [location.lng, location.lat];
+    return data.features[0].center;
   } catch (error) {
     console.error("Error getting coordinates:", error);
-    return null;
-  }
-}
-
-/**
- * Get location suggestions based on user input
- * @param query Location search query
- * @param limit Maximum number of results (default 5)
- * @param language Result language (supports 'en' and 'ru')
- */
-export async function getLocation(
-  query: string,
-  limit: number = 5,
-  language: string = "en"
-): Promise<{ placeName: string; lat: number; lng: number }[]> {
-  if (!query || !isMapboxAvailable()) {
-    console.log("Geocoding not available, network status:", navigator.onLine);
-    return [];
-  }
-  
-  try {
-    console.log("Fetching locations via proxy with query:", query);
-    
-    const url = `${API_URL}/mapbox/geocoding?query=${encodeURIComponent(query)}&limit=${limit}&language=${language}`;
-    console.log("Request URL:", url);
-    
-    const response = await fetch(url);
-    console.log("Response status:", response.status, response.statusText);
-    
-    const responseText = await response.text();
-    console.log("Raw response:", responseText);
-    
-    if (!response.ok) {
-      throw new Error(`API error: ${response.statusText} - ${responseText}`);
-    }
-    
-    const locations = JSON.parse(responseText) as { placeName: string; lat: number; lng: number }[];
-    console.log("Parsed locations:", locations);
-    
-    if (!locations || locations.length === 0) {
-      console.log("No locations found in response");
-      return [];
-    }
-    
-    return locations;
-  } catch (error) {
-    console.error("Error fetching locations:", error);
-    console.error("Error details:", error instanceof Error ? error.message : String(error));
-    return [];
+    throw new Error(
+      `Failed to get coordinates: ${
+        error instanceof Error ? error.message : "Unknown error"
+      }`
+    );
   }
 }

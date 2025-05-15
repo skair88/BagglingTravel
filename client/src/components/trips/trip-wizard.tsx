@@ -57,12 +57,12 @@ const TripWizard: React.FC<TripWizardProps> = ({ onComplete }) => {
     
     setIsLoading(true);
     try {
-    const locationDataArray = await mapbox.getLocation(searchQuery);
+    const locationDataArray = await mapbox.searchLocations(searchQuery);
       if (locationDataArray && locationDataArray.length > 0) {
         const locationData = locationDataArray[0]; 
         setTripData(prev => ({
           ...prev,
-          destination: locationData.placeName, 
+          destination: locationData.place_name, 
           location: { lat: locationData.lat, lng: locationData.lng }
         }));
       }

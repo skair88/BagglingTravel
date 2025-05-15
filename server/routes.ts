@@ -15,7 +15,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Proxy API for Mapbox geocoding
-  app.get("/api/mapbox/geocoding", async (req, res) => {
+  app.get("/api/geocode", async (req, res) => {
     console.log("Received geocoding request:", {
       query: req.query.query,
       limit: req.query.limit,
@@ -33,17 +33,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     try {
       const mapboxApiKey = process.env.MAPBOX_API_KEY;
-      if (!mapboxApiKey) {
-        console.error("Missing MAPBOX_API_KEY environment variable");
-        return res.status(500).json({ error: 'Mapbox API key not configured' });
-      }
-      
       console.log("Server side API key availability:", {
         keyExists: !!mapboxApiKey,
-        keyPrefix: mapboxApiKey.substring(0, 4) + "..."
+        keyPrefix: mapboxApiKey ? mapboxApiKey.substring(0, 4) + "..." : "N/A"
       });
       
       let locations = [];
+      
+      if (!mapboxApiKey) {
         console.log("Fallback to static locations data for query:", query);
         
         // Static locations that match the query
