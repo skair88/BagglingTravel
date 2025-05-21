@@ -1,7 +1,6 @@
-import React, { useState } from 'react';
-import { format, addMonths, isBefore, isAfter } from 'date-fns';
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import React, { useState, useEffect, useRef } from 'react';
+import { format, addMonths, subMonths, isBefore, isAfter, addDays, getMonth, getYear, setMonth, setYear, parse } from 'date-fns';
+import { Calendar as CalendarIcon, ChevronDown, CheckCircle, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface MobileDatePickerProps {
@@ -11,174 +10,227 @@ interface MobileDatePickerProps {
   maxDate?: Date;
   className?: string;
   placeholder?: string;
+  defaultMonth?: Date; // Месяц, который будет показан по умолчанию
 }
 
-const MobileDatePicker = ({
+const MobileDatePicker: React.FC<MobileDatePickerProps> = ({
   selected,
   onSelect,
   minDate,
   maxDate,
   className,
-  placeholder = 'Выберите дату'
-}: MobileDatePickerProps) => {
+  placeholder = 'Select date',
+  defaultMonth
+}) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [currentMonth, setCurrentMonth] = useState(selected || new Date());
+  const [currentView, setCurrentView] = useState<'days' | 'months' | 'years' | 'wheel'>('wheel');
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(selected);
+  const [currentMonth, setCurrentMonth] = useState(selected || defaultMonth || new Date());
   
-  // Получаем дни текущего месяца
-  const getDaysInMonth = (date: Date) => {
-    const year = date.getFullYear();
-    const month = date.getMonth();
+  const modalRef = useRef<HTMLDivElement>(null);
+
+  // Данные для выбора дня, месяца, года в стиле iOS колеса
+  const generateYears = (startYear: number, count: number) => {
+    return Array.from({ length: count }, (_, i) => startYear + i);
+  };
+
+  const currentYear = getYear(new Date());
+  const years = generateYears(currentYear - 50, 101); // 50 лет назад до 50 лет вперед
+  
+  const monthNames = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
+  
+  const generateDays = (year: number, month: number) => {
     const daysInMonth = new Date(year, month + 1, 0).getDate();
-    const firstDayOfMonth = new Date(year, month, 1).getDay();
-    
-    const days = [];
-    const daysFromPrevMonth = firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1;
-    
-    // Добавляем дни из предыдущего месяца
-    const prevMonth = new Date(year, month, 0);
-    const prevMonthDays = prevMonth.getDate();
-    
-    for (let i = daysFromPrevMonth; i > 0; i--) {
-      const day = new Date(year, month - 1, prevMonthDays - i + 1);
-      days.push({ date: day, isCurrentMonth: false });
-    }
-    
-    // Добавляем дни текущего месяца
-    for (let i = 1; i <= daysInMonth; i++) {
-      const day = new Date(year, month, i);
-      days.push({ date: day, isCurrentMonth: true });
-    }
-    
-    // Добавляем дни следующего месяца для заполнения сетки
-    const totalDays = days.length;
-    const remainingDays = 42 - totalDays; // 6 рядов по 7 дней
-    
-    for (let i = 1; i <= remainingDays; i++) {
-      const day = new Date(year, month + 1, i);
-      days.push({ date: day, isCurrentMonth: false });
-    }
-    
-    return days;
+    return Array.from({ length: daysInMonth }, (_, i) => i + 1);
   };
   
-  const days = getDaysInMonth(currentMonth);
-  const weekDays = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
-  const monthName = format(currentMonth, 'LLLL yyyy');
+  const [wheelDay, setWheelDay] = useState(selected ? selected.getDate() : new Date().getDate());
+  const [wheelMonth, setWheelMonth] = useState(selected ? selected.getMonth() : new Date().getMonth());
+  const [wheelYear, setWheelYear] = useState(selected ? selected.getFullYear() : new Date().getFullYear());
+  const [wheelDays, setWheelDays] = useState(generateDays(wheelYear, wheelMonth));
   
-  const goToPreviousMonth = () => {
-    setCurrentMonth(prev => addMonths(prev, -1));
-  };
+  // При изменении месяца/года обновляем количество дней
+  useEffect(() => {
+    const days = generateDays(wheelYear, wheelMonth);
+    setWheelDays(days);
+    
+    // Если выбранный день больше максимально возможного, корректируем
+    if (wheelDay > days.length) {
+      setWheelDay(days.length);
+    }
+  }, [wheelMonth, wheelYear]);
   
-  const goToNextMonth = () => {
-    setCurrentMonth(prev => addMonths(prev, 1));
-  };
+  // Клик вне модального окна закрывает его
+  useEffect(() => {
+    if (!isOpen) return;
+    
+    const handleClickOutside = (event: MouseEvent) => {
+      if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    
+    // Предотвращаем скролл страницы при открытом пикере на мобильном
+    document.body.style.overflow = 'hidden';
+    
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.body.style.overflow = '';
+    };
+  }, [isOpen]);
   
-  const handleDateSelect = (date: Date) => {
+  const applyDate = () => {
+    const date = new Date(wheelYear, wheelMonth, wheelDay);
+    setSelectedDate(date);
     onSelect(date);
     setIsOpen(false);
   };
   
-  const isDateDisabled = (date: Date) => {
-    if (minDate && isBefore(date, minDate)) {
-      return true;
+  const cancelSelection = () => {
+    // Возвращаем предыдущие значения
+    if (selected) {
+      setWheelDay(selected.getDate());
+      setWheelMonth(selected.getMonth());
+      setWheelYear(selected.getFullYear());
     }
-    if (maxDate && isAfter(date, maxDate)) {
-      return true;
-    }
-    return false;
+    setIsOpen(false);
+  };
+  
+  // Рендер iOS-like wheel picker
+  const renderWheel = () => {
+    const renderWheelItems = (items: number[] | string[], selectedItem: number, onChange: (value: number) => void, formatter?: (item: any) => string) => {
+      return (
+        <div className="relative flex-1 overflow-hidden h-[180px] mx-1">
+          <div className="absolute inset-0 pointer-events-none z-10 bg-gradient-to-b from-white via-transparent to-white"></div>
+          <div className="h-full overflow-auto snap-y snap-mandatory scrollbar-none mask-vertical">
+            <div className="h-[70px]"></div> {/* Padding top */}
+            {items.map((item, index) => {
+              const value = typeof item === 'number' ? item : index;
+              const isSelected = selectedItem === value;
+              const displayText = formatter ? formatter(item) : item.toString();
+              
+              return (
+                <div 
+                  key={index} 
+                  className={cn(
+                    "h-[40px] flex items-center justify-center snap-start text-lg font-medium cursor-pointer transition-all",
+                    isSelected ? "text-primary scale-110" : "text-gray-500"
+                  )}
+                  onClick={() => onChange(value)}
+                >
+                  {displayText}
+                </div>
+              );
+            })}
+            <div className="h-[70px]"></div> {/* Padding bottom */}
+          </div>
+        </div>
+      );
+    };
+    
+    return (
+      <div className="p-4">
+        <div className="flex justify-between items-center mb-6">
+          <h3 className="text-lg font-semibold text-center w-full">
+            {selectedDate ? format(selectedDate, 'EEEE, MMMM d, yyyy') : 'Select a date'}
+          </h3>
+        </div>
+        
+        <div className="flex relative mb-6">
+          {/* Highlighting selected item */}
+          <div className="absolute left-0 right-0 top-[70px] h-[40px] bg-gray-100 rounded-lg pointer-events-none"></div>
+          
+          {/* Day wheel */}
+          {renderWheelItems(
+            wheelDays, 
+            wheelDay, 
+            (value) => setWheelDay(value),
+            (day) => `${day}`
+          )}
+          
+          {/* Month wheel */}
+          {renderWheelItems(
+            monthNames, 
+            wheelMonth, 
+            (value) => setWheelMonth(value),
+            (month) => month.toString().substring(0, 3)
+          )}
+          
+          {/* Year wheel */}
+          {renderWheelItems(
+            years, 
+            wheelYear, 
+            (value) => setWheelYear(value)
+          )}
+        </div>
+        
+        {/* Action buttons */}
+        <div className="flex space-x-3">
+          <button
+            className="flex-1 py-3 rounded-lg bg-gray-200 text-gray-800 font-medium"
+            onClick={cancelSelection}
+          >
+            Cancel
+          </button>
+          <button
+            className="flex-1 py-3 rounded-lg bg-primary text-white font-medium"
+            onClick={applyDate}
+          >
+            Done
+          </button>
+        </div>
+      </div>
+    );
   };
   
   return (
     <div className={cn("relative", className)}>
-      <Button
-        variant="outline"
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-full justify-start text-left font-normal"
-      >
-        <CalendarIcon className="mr-2 h-4 w-4" />
-        {selected ? (
-          format(selected, 'dd.MM.yyyy')
-        ) : (
-          <span className="text-muted-foreground">{placeholder}</span>
+      <button
+        className={cn(
+          "w-full flex items-center justify-between px-4 py-3.5 bg-white border border-gray-300 rounded-lg text-left",
+          "focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary",
+          "transition-colors"
         )}
-      </Button>
+        onClick={() => setIsOpen(true)}
+      >
+        <div className="flex items-center">
+          <CalendarIcon className="mr-3 h-5 w-5 text-gray-500" />
+          <span className={cn("text-base", !selectedDate && "text-gray-500")}>
+            {selectedDate ? format(selectedDate, 'MMM d, yyyy') : placeholder}
+          </span>
+        </div>
+        <ChevronDown className="h-4 w-4 text-gray-500" />
+      </button>
       
       {isOpen && (
-        <div className="absolute top-full left-0 z-50 w-full mt-2 bg-white rounded-md shadow-lg border">
-          <div className="p-3">
-            <div className="flex items-center justify-between mb-4">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={goToPreviousMonth}
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <div className="font-medium capitalize">{monthName}</div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={goToNextMonth}
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
-            
-            <div className="grid grid-cols-7 gap-1 mb-2">
-              {weekDays.map(day => (
-                <div key={day} className="text-center text-xs font-medium text-gray-500">
-                  {day}
-                </div>
-              ))}
-            </div>
-            
-            <div className="grid grid-cols-7 gap-1">
-              {days.map(({ date, isCurrentMonth }, index) => {
-                const isSelected = selected && date.toDateString() === selected.toDateString();
-                const isDisabled = isDateDisabled(date);
-                
-                return (
-                  <Button
-                    key={index}
-                    variant="ghost"
-                    size="sm"
-                    className={cn(
-                      "h-9 w-9 p-0 font-normal",
-                      !isCurrentMonth && "text-gray-400",
-                      isSelected && "bg-primary text-white hover:bg-primary hover:text-white",
-                      isDisabled && "opacity-50 cursor-not-allowed"
-                    )}
-                    onClick={() => !isDisabled && handleDateSelect(date)}
-                    disabled={isDisabled}
-                  >
-                    {date.getDate()}
-                  </Button>
-                );
-              })}
-            </div>
-          </div>
+        <>
+          {/* Backdrop */}
+          <div className="fixed inset-0 bg-black bg-opacity-50 z-50" />
           
-          <div className="p-3 border-t flex justify-between">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setIsOpen(false)}
-            >
-              Отмена
-            </Button>
-            <Button
-              size="sm"
-              onClick={() => {
-                if (selected) {
-                  onSelect(selected);
-                }
-                setIsOpen(false);
-              }}
-            >
-              Готово
-            </Button>
+          {/* Modal */}
+          <div
+            ref={modalRef}
+            className="fixed inset-x-0 bottom-0 z-50 bg-white rounded-t-2xl shadow-xl animate-slide-up"
+            style={{ maxHeight: '90vh' }}
+          >
+            <div className="p-1">
+              {/* Close button */}
+              <button
+                onClick={() => setIsOpen(false)}
+                className="absolute right-4 top-4 p-1 rounded-full hover:bg-gray-100"
+              >
+                <X size={20} className="text-gray-500" />
+              </button>
+              
+              {renderWheel()}
+            </div>
           </div>
-        </div>
+        </>
       )}
     </div>
   );
