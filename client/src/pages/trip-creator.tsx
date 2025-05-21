@@ -13,6 +13,7 @@ import DateSelector from '@/components/ui/date-selector';
 import BottomNav from '@/components/layout/bottom-nav';
 import EnvDisplay from '@/components/debug/env-display';
 import TravelersSelector from '@/components/trips/travelers-selector';
+import ActivitiesSelector from '@/components/trips/activities-selector';
 
 // WeatherForecast interface
 interface WeatherForecast {
@@ -39,7 +40,7 @@ interface TripWizardData {
   startDate: Date;
   endDate: Date;
   purpose: string; // Keeping for backward compatibility
-  activities: string[]; // Keeping for backward compatibility
+  activities: string[]; // Activities selected by user
   travelers: TravelerType[];
 }
 
@@ -79,7 +80,7 @@ export default function TripCreator() {
   const [isDateError, setIsDateError] = useState(false);
   
   // Wizard state
-  const [currentStep, setCurrentStep] = useState<'trip-details' | 'travelers'>('trip-details');
+  const [currentStep, setCurrentStep] = useState<'trip-details' | 'travelers' | 'activities'>('trip-details');
   
   // Fetch weather forecast when location and dates are set
   useEffect(() => {
@@ -188,9 +189,18 @@ export default function TripCreator() {
     setCurrentStep('travelers');
   };
   
-  // Обработчик для возврата к деталям поездки
-  const handleBackToDetails = () => {
-    setCurrentStep('trip-details');
+  // Обработчик для возврата к предыдущему экрану
+  const handleGoBack = () => {
+    if (currentStep === 'travelers') {
+      setCurrentStep('trip-details');
+    } else if (currentStep === 'activities') {
+      setCurrentStep('travelers');
+    }
+  };
+  
+  // Обработчик для перехода от путешественников к активностям
+  const handleGoToActivities = () => {
+    setCurrentStep('activities');
   };
   
   // Обработчик для сохранения информации о путешественниках
@@ -198,6 +208,14 @@ export default function TripCreator() {
     setFormData({
       ...formData,
       travelers
+    });
+  };
+  
+  // Обработчик для сохранения выбранных активностей
+  const handleSaveActivities = (activities: string[]) => {
+    setFormData({
+      ...formData,
+      activities
     });
   };
   

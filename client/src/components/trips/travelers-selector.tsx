@@ -21,8 +21,8 @@ interface TravelersSelectorProps {
 
 const defaultTravelers: TravelerType[] = [
   // Взрослые
-  { id: 'men', type: 'adult', subtype: 'men', label: 'Men', count: 1 },
-  { id: 'women', type: 'adult', subtype: 'women', label: 'Women', count: 1 },
+  { id: 'men', type: 'adult', subtype: 'men', label: 'Men', count: 0 },
+  { id: 'women', type: 'adult', subtype: 'women', label: 'Women', count: 0 },
   
   // Дети
   { id: 'baby', type: 'kid', subtype: 'baby', label: 'Baby', description: 'during pregnancy, at birth and up to 1 year', count: 0 },
@@ -52,10 +52,15 @@ const TravelersSelector: React.FC<TravelersSelectorProps> = ({
     }));
   };
 
+  // Проверка, выбран ли хотя бы один путешественник
+  const hasTravelers = travelers.some(traveler => traveler.count > 0);
+  
   // Обработчик для кнопки "Далее"
   const handleNext = () => {
-    onSaveTravelers(travelers);
-    onNext();
+    if (hasTravelers) {
+      onSaveTravelers(travelers);
+      onNext();
+    }
   };
 
   return (
@@ -168,9 +173,15 @@ const TravelersSelector: React.FC<TravelersSelectorProps> = ({
           onClick={handleNext}
           className="w-full py-6 text-base"
           variant="outline"
+          disabled={!hasTravelers}
         >
           Next
         </Button>
+        {!hasTravelers && (
+          <p className="text-center text-sm text-red-500 mt-2">
+            Please select at least one traveler
+          </p>
+        )}
       </div>
 
       {/* Нижняя навигация */}
