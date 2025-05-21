@@ -121,7 +121,11 @@ const ActivitiesSelector: React.FC<ActivitiesSelectorProps> = ({
   
   // Генерация списка
   const handleGenerateList = () => {
+    // Сохраняем выбранные активности и переходим к списку вещей
     onSaveActivities(selectedActivities);
+    
+    // После создания путешествия нас перенаправят на главную страницу
+    // Оттуда мы сможем открыть список вещей для конкретной поездки
   };
   
   return (
