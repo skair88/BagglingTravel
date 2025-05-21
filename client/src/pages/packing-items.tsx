@@ -16,9 +16,10 @@ interface CategoryWithItems {
 }
 
 export default function PackingItems() {
-  const [, params] = useLocation();
-  const urlParams = params || '';
-  const tripId = Number(new URLSearchParams(urlParams).get('tripId'));
+  const [location] = useLocation();
+  // Get tripId from URL path - format: /trip/:tripId/items
+  const match = location.match(/\/trip\/(\d+)\/items/);
+  const tripId = match ? Number(match[1]) : 0;
   
   const { items, addItem, toggleItem, updateQuantity, removeItem: deleteItem } = useItems(tripId);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -112,7 +113,7 @@ export default function PackingItems() {
           <div className="flex-1">
             {categoriesWithItems.map(({ category, items, isExpanded }) => (
               <div key={category.id} className="border-b">
-                {/* Заголовок категории */}
+                {/* Заголовок категории - стилизация согласно макету */}
                 <button 
                   className="w-full flex items-center justify-between p-4 bg-gray-200"
                   onClick={() => toggleCategory(category.id)}
@@ -165,7 +166,7 @@ export default function PackingItems() {
                       </div>
                     ))}
                     
-                    {/* Кнопка добавления предмета */}
+                    {/* Кнопка добавления предмета - макет "Add +" */}
                     <div className="px-4 py-3 border-t border-gray-200">
                       {showAddItemForm && selectedCategory === category.id ? (
                         <div className="flex">
@@ -175,6 +176,7 @@ export default function PackingItems() {
                             onChange={(e) => setNewItemName(e.target.value)}
                             placeholder="Enter item name"
                             className="border border-gray-300 rounded-l px-3 py-2 flex-1"
+                            autoFocus
                           />
                           <Button
                             onClick={() => handleAddItem(category.id)}
@@ -186,14 +188,13 @@ export default function PackingItems() {
                         </div>
                       ) : (
                         <button
-                          className="flex items-center text-gray-600"
+                          className="flex items-center justify-center w-full text-center py-2 text-gray-600"
                           onClick={() => {
                             setSelectedCategory(category.id);
                             setShowAddItemForm(true);
                           }}
                         >
-                          <PlusIcon className="h-4 w-4 mr-1" />
-                          <span>Add</span>
+                          <span>Add +</span>
                         </button>
                       )}
                     </div>

@@ -235,12 +235,21 @@ export default function TripCreator() {
         location: formData.location,
         startDate: formData.startDate,
         endDate: formData.endDate,
-        purpose: 'vacation', // Default value
-        activities: [], // Empty array
+        purpose: 'vacation', // Используем стандартное значение
+        activities: formData.activities, // Включаем выбранные активности
       };
       
-      await createTrip(tripData);
-      navigate('/');
+      // Создаем поездку и получаем id
+      const createdTrip = await createTrip(tripData);
+      
+      // Проверяем, была ли нажата кнопка Generate List
+      // Если да, переходим на страницу списка вещей
+      // Если нет, возвращаемся на главную
+      if (createdTrip && formData.activities.length > 0) {
+        navigate(`/trip/${createdTrip.id}/items`);
+      } else {
+        navigate('/');
+      }
     } catch (error) {
       console.error('Failed to create trip:', error);
     } finally {
