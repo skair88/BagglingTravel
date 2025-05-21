@@ -343,10 +343,24 @@ export default function TripCreator() {
   const renderTravelersSelector = () => (
     <div className="flex-1 flex flex-col">
       <TravelersSelector 
-        onBack={handleBackToDetails}
-        onNext={handleSaveTrip}
+        onBack={handleGoBack}
+        onNext={handleGoToActivities}
         onSaveTravelers={handleSaveTravelers}
         initialTravelers={formData.travelers}
+      />
+    </div>
+  );
+  
+  // Рендер экрана выбора активностей
+  const renderActivitiesSelector = () => (
+    <div className="flex-1 flex flex-col">
+      <ActivitiesSelector 
+        onBack={handleGoBack}
+        onSaveActivities={(activities) => {
+          handleSaveActivities(activities);
+          handleSaveTrip();
+        }}
+        initialActivities={formData.activities}
       />
     </div>
   );
@@ -359,8 +373,22 @@ export default function TripCreator() {
           {renderTripDetails()}
           <BottomNav />
         </>
+      ) : currentStep === 'travelers' ? (
+        <TravelersSelector 
+          onBack={handleGoBack}
+          onNext={handleGoToActivities}
+          onSaveTravelers={handleSaveTravelers}
+          initialTravelers={formData.travelers}
+        />
       ) : (
-        renderTravelersSelector()
+        <ActivitiesSelector 
+          onBack={handleGoBack}
+          onSaveActivities={(activities) => {
+            handleSaveActivities(activities);
+            handleSaveTrip();
+          }}
+          initialActivities={formData.activities}
+        />
       )}
     </div>
   );
