@@ -12,6 +12,7 @@ import { useTrips } from '@/hooks/use-trips';
 import MobileDatePicker from '@/components/ui/mobile-date-picker';
 import BottomNav from '@/components/layout/bottom-nav';
 import EnvDisplay from '@/components/debug/env-display';
+import TravelersSelector from '@/components/trips/travelers-selector';
 
 // WeatherForecast interface
 interface WeatherForecast {
@@ -19,6 +20,16 @@ interface WeatherForecast {
   temperature: number;
   condition: string;
   icon: string;
+}
+
+// Interfaces for travelers
+interface TravelerType {
+  id: string;
+  type: 'adult' | 'kid';
+  subtype: string;
+  label: string;
+  description?: string;
+  count: number;
 }
 
 // TripWizardData interface for tracking form state
@@ -29,7 +40,21 @@ interface TripWizardData {
   endDate: Date;
   purpose: string; // Keeping for backward compatibility
   activities: string[]; // Keeping for backward compatibility
+  travelers: TravelerType[];
 }
+
+// Default travelers data
+const defaultTravelers: TravelerType[] = [
+  // Взрослые
+  { id: 'men', type: 'adult', subtype: 'men', label: 'Men', count: 1 },
+  { id: 'women', type: 'adult', subtype: 'women', label: 'Women', count: 1 },
+  
+  // Дети
+  { id: 'baby', type: 'kid', subtype: 'baby', label: 'Baby', description: 'during pregnancy, at birth and up to 1 year', count: 0 },
+  { id: 'toddler', type: 'kid', subtype: 'toddler', label: 'Toddler', description: '1 to 3 years', count: 0 },
+  { id: 'child', type: 'kid', subtype: 'child', label: 'Child', description: '4 to 12 years', count: 0 },
+  { id: 'teenager', type: 'kid', subtype: 'teenager', label: 'Teenager', description: '13 to 18 years', count: 0 },
+];
 
 // Default trip data
 const defaultTripData: TripWizardData = {
@@ -39,6 +64,7 @@ const defaultTripData: TripWizardData = {
   endDate: new Date(new Date().setDate(new Date().getDate() + 7)),
   purpose: 'vacation', // Default purpose
   activities: [],
+  travelers: defaultTravelers
 };
 
 export default function TripCreator() {
@@ -51,6 +77,9 @@ export default function TripCreator() {
   const [weatherForecast, setWeatherForecast] = useState<WeatherForecast[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isDateError, setIsDateError] = useState(false);
+  
+  // Wizard state
+  const [currentStep, setCurrentStep] = useState<'trip-details' | 'travelers'>('trip-details');
   
   // Fetch weather forecast when location and dates are set
   useEffect(() => {
@@ -149,9 +178,32 @@ export default function TripCreator() {
     });
   };
   
+  // Обработчик для перехода на экран выбора путешественников
+  const handleGoToTravelers = () => {
+    // Валидация формы
+    if (!formData.destination || isDateError) {
+      return;
+    }
+    
+    setCurrentStep('travelers');
+  };
+  
+  // Обработчик для возврата к деталям поездки
+  const handleBackToDetails = () => {
+    setCurrentStep('trip-details');
+  };
+  
+  // Обработчик для сохранения информации о путешественниках
+  const handleSaveTravelers = (travelers: TravelerType[]) => {
+    setFormData({
+      ...formData,
+      travelers
+    });
+  };
+  
   // Handle form submission
   const handleSaveTrip = async () => {
-    // Validate form
+    // Валидация формы
     if (!formData.destination || isDateError) {
       return;
     }
@@ -178,99 +230,120 @@ export default function TripCreator() {
     }
   };
   
-  return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
-      <Header title="Baggle" showBackButton onBackClick={() => navigate('/')} />
+  // Рендер экрана с деталями поездки
+  const renderTripDetails = () => (
+    <div className="p-4 flex-1">
+      <ProgressBar currentStep={1} totalSteps={2} />
       
-      <div className="p-4 flex-1">
-        <ProgressBar currentStep={1} totalSteps={1} />
-        
-        <div className="mt-6">
-          <h2 className="text-center text-lg font-medium mb-3">Direction</h2>
-          <LocationSearch
-            value={locationInput}
-            onChange={setLocationInput}
-            onLocationSelect={handleLocationSelect}
-          />
-        </div>
-        
-        <div className="mt-6">
-          <h2 className="text-center text-lg font-medium mb-3">Dates</h2>
-          
-          <div className="grid grid-cols-2 gap-4">
-            {/* Start Date */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">From</label>
-              <MobileDatePicker
-                selected={formData.startDate}
-                onSelect={(date) => {
-                  // When from date changes, set both dates in same month
-                  const newEndDate = new Date(formData.endDate);
-                  newEndDate.setFullYear(date.getFullYear());
-                  newEndDate.setMonth(date.getMonth());
-                  
-                  // If end date becomes before start date, adjust it
-                  if (newEndDate < date) {
-                    newEndDate.setDate(date.getDate() + 7);
-                  }
-                  
-                  setFormData({
-                    ...formData,
-                    startDate: date,
-                    endDate: newEndDate
-                  });
-                }}
-                className={isDateError ? 'border-red-500' : ''}
-                placeholder="Pick a date"
-              />
-            </div>
-            
-            {/* End Date */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">To</label>
-              <MobileDatePicker
-                selected={formData.endDate}
-                onSelect={(date) => {
-                  setFormData({ ...formData, endDate: date });
-                }}
-                minDate={formData.startDate} // Prevent dates before start date
-                className={isDateError ? 'border-red-500' : ''}
-                placeholder="Pick a date"
-              />
-            </div>
-          </div>
-          
-          {isDateError && (
-            <p className="text-sm text-red-500 mt-1">
-              End date must be after or equal to start date
-            </p>
-          )}
-        </div>
-        
-        {/* Weather Forecast */}
-        <div className="mt-6">
-          <h2 className="text-center text-lg font-medium mb-3">Weather information</h2>
-          <WeatherForecast forecast={weatherForecast} isLoading={isLoading} />
-        </div>
-        
-        {/* Debug information */}
-        <div className="mt-6">
-          <EnvDisplay />
-        </div>
-        
-        {/* Next Button */}
-        <div className="mt-8">
-          <Button 
-            className="w-full"
-            onClick={handleSaveTrip}
-            disabled={!formData.destination || isDateError || isLoading}
-          >
-            Next
-          </Button>
-        </div>
+      <div className="mt-6">
+        <h2 className="text-center text-lg font-medium mb-3">Direction</h2>
+        <LocationSearch
+          value={locationInput}
+          onChange={setLocationInput}
+          onLocationSelect={handleLocationSelect}
+        />
       </div>
       
-      <BottomNav />
+      <div className="mt-6">
+        <h2 className="text-center text-lg font-medium mb-3">Dates</h2>
+        
+        <div className="grid grid-cols-2 gap-4">
+          {/* Start Date */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">From</label>
+            <MobileDatePicker
+              selected={formData.startDate}
+              onSelect={(date) => {
+                // When from date changes, set both dates in same month
+                const newEndDate = new Date(formData.endDate);
+                newEndDate.setFullYear(date.getFullYear());
+                newEndDate.setMonth(date.getMonth());
+                
+                // If end date becomes before start date, adjust it
+                if (newEndDate < date) {
+                  newEndDate.setDate(date.getDate() + 7);
+                }
+                
+                setFormData({
+                  ...formData,
+                  startDate: date,
+                  endDate: newEndDate
+                });
+              }}
+              className={isDateError ? 'border-red-500' : ''}
+              placeholder="Pick a date"
+            />
+          </div>
+          
+          {/* End Date */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">To</label>
+            <MobileDatePicker
+              selected={formData.endDate}
+              onSelect={(date) => {
+                setFormData({ ...formData, endDate: date });
+              }}
+              minDate={formData.startDate} // Prevent dates before start date
+              className={isDateError ? 'border-red-500' : ''}
+              placeholder="Pick a date"
+            />
+          </div>
+        </div>
+        
+        {isDateError && (
+          <p className="text-sm text-red-500 mt-1">
+            End date must be after or equal to start date
+          </p>
+        )}
+      </div>
+      
+      {/* Weather Forecast */}
+      <div className="mt-6">
+        <h2 className="text-center text-lg font-medium mb-3">Weather information</h2>
+        <WeatherForecast forecast={weatherForecast} isLoading={isLoading} />
+      </div>
+      
+      {/* Debug information */}
+      <div className="mt-6">
+        <EnvDisplay />
+      </div>
+      
+      {/* Next Button */}
+      <div className="mt-8">
+        <Button 
+          className="w-full"
+          onClick={handleGoToTravelers}
+          disabled={!formData.destination || isDateError || isLoading}
+        >
+          Next
+        </Button>
+      </div>
+    </div>
+  );
+  
+  // Рендер экрана выбора путешественников
+  const renderTravelersSelector = () => (
+    <div className="flex-1 flex flex-col">
+      <TravelersSelector 
+        onBack={handleBackToDetails}
+        onNext={handleSaveTrip}
+        onSaveTravelers={handleSaveTravelers}
+        initialTravelers={formData.travelers}
+      />
+    </div>
+  );
+  
+  return (
+    <div className="min-h-screen flex flex-col bg-gray-50">
+      {currentStep === 'trip-details' ? (
+        <>
+          <Header title="Baggle" showBackButton onBackClick={() => navigate('/')} />
+          {renderTripDetails()}
+          <BottomNav />
+        </>
+      ) : (
+        renderTravelersSelector()
+      )}
     </div>
   );
 }

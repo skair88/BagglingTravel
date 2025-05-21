@@ -71,17 +71,51 @@ const LocationSearch: React.FC<LocationSearchProps> = ({
     if (!query) return;
     
     setIsLoading(true);
+    console.log('Fetching locations for query:', query);
     
     try {
-      // Используем наш API-эндпоинт
-      const response = await fetch(`/api/geocode?query=${encodeURIComponent(query)}`);
-      
-      if (response.ok) {
-        const data = await response.json();
-        setSuggestions(data);
-      } else {
-        setSuggestions([]);
+      // Сначала пробуем использовать АПИ-маршрут сервера
+      try {
+        const response = await fetch(`/api/geocode?query=${encodeURIComponent(query)}`);
+        console.log('API Response status:', response.status);
+        
+        if (response.ok) {
+          const data = await response.json();
+          console.log('API found locations:', data);
+          if (data && data.length > 0) {
+            setSuggestions(data);
+            setIsLoading(false);
+            return;
+          }
+        }
+      } catch (apiError) {
+        console.error('API request failed:', apiError);
       }
+      
+      // Если АПИ не сработало, используем статические данные
+      console.log('Using static location data');
+      const staticLocations = [
+        { placeName: 'Moscow, Russia', lat: 55.7558, lng: 37.6173 },
+        { placeName: 'New York, USA', lat: 40.7128, lng: -74.0060 },
+        { placeName: 'Paris, France', lat: 48.8566, lng: 2.3522 },
+        { placeName: 'London, UK', lat: 51.5074, lng: -0.1278 },
+        { placeName: 'Tokyo, Japan', lat: 35.6762, lng: 139.6503 },
+        { placeName: 'Berlin, Germany', lat: 52.5200, lng: 13.4050 },
+        { placeName: 'Rome, Italy', lat: 41.9028, lng: 12.4964 },
+        { placeName: 'Madrid, Spain', lat: 40.4168, lng: -3.7038 },
+        { placeName: 'Beijing, China', lat: 39.9042, lng: 116.4074 },
+        { placeName: 'Sydney, Australia', lat: -33.8688, lng: 151.2093 }
+      ];
+      
+      // Фильтруем локации по поисковому запросу
+      const filteredLocations = staticLocations.filter(location =>
+        location.placeName.toLowerCase().includes(query.toLowerCase())
+      );
+      
+      console.log('Filtered static locations:', filteredLocations);
+      
+      // Если нет совпадений, возвращаем топ-3 локации
+      setSuggestions(filteredLocations.length > 0 ? filteredLocations : staticLocations.slice(0, 3));
     } catch (error) {
       console.error('Error fetching locations:', error);
       setSuggestions([]);

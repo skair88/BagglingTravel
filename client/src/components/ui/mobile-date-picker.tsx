@@ -101,13 +101,94 @@ const MobileDatePicker: React.FC<MobileDatePickerProps> = ({
     setIsOpen(false);
   };
   
-  // Рендер iOS-like wheel picker
+  // Рендер iOS-like wheel picker с поддержкой свайпов
   const renderWheel = () => {
     const renderWheelItems = (items: number[] | string[], selectedItem: number, onChange: (value: number) => void, formatter?: (item: any) => string) => {
+      const wheelRef = useRef<HTMLDivElement>(null);
+      const [startY, setStartY] = useState<number | null>(null);
+      const [scrolling, setScrolling] = useState(false);
+      
+      // Устанавливаем начальное положение скролла для выбранного элемента при монтировании
+      useEffect(() => {
+        if (wheelRef.current) {
+          const itemHeight = 40; // высота элемента в пикселях
+          const paddingTop = 70; // верхний отступ
+          const scrollToPosition = (typeof selectedItem === 'number' ? selectedItem : 0) * itemHeight + paddingTop;
+          
+          wheelRef.current.scrollTop = scrollToPosition;
+        }
+      }, [selectedItem, items]);
+      
+      // Обработчики событий для свайпов
+      const handleTouchStart = (e: React.TouchEvent) => {
+        setStartY(e.touches[0].clientY);
+        setScrolling(true);
+      };
+      
+      const handleTouchMove = (e: React.TouchEvent) => {
+        if (startY === null || !wheelRef.current || !scrolling) return;
+        
+        const currentY = e.touches[0].clientY;
+        const diff = startY - currentY;
+        
+        wheelRef.current.scrollTop += diff;
+        setStartY(currentY);
+      };
+      
+      const handleTouchEnd = () => {
+        setStartY(null);
+        setScrolling(false);
+        
+        // После окончания скролла определяем, какой элемент теперь в центре
+        if (wheelRef.current) {
+          const itemHeight = 40;
+          const paddingTop = 70;
+          const scrollTop = wheelRef.current.scrollTop;
+          
+          // Вычисляем индекс элемента на основе текущей позиции скролла
+          const index = Math.round((scrollTop - paddingTop) / itemHeight);
+          
+          // Проверяем, находится ли индекс в допустимом диапазоне
+          if (index >= 0 && index < items.length) {
+            onChange(typeof items[index] === 'number' ? items[index] as number : index);
+            
+            // Плавно прокручиваем к выбранному элементу
+            wheelRef.current.scrollTo({
+              top: index * itemHeight + paddingTop,
+              behavior: 'smooth'
+            });
+          }
+        }
+      };
+      
+      // Обработчик скролла колесом мыши
+      const handleWheel = (e: React.WheelEvent) => {
+        // После окончания скролла определяем выбранный элемент
+        if (wheelRef.current) {
+          setTimeout(() => {
+            const itemHeight = 40;
+            const paddingTop = 70;
+            const scrollTop = wheelRef.current.scrollTop;
+            const index = Math.round((scrollTop - paddingTop) / itemHeight);
+            
+            if (index >= 0 && index < items.length) {
+              onChange(typeof items[index] === 'number' ? items[index] as number : index);
+            }
+          }, 100);
+        }
+      };
+      
       return (
         <div className="relative flex-1 overflow-hidden h-[180px] mx-1">
           <div className="absolute inset-0 pointer-events-none z-10 bg-gradient-to-b from-white via-transparent to-white"></div>
-          <div className="h-full overflow-auto snap-y snap-mandatory scrollbar-none mask-vertical">
+          <div 
+            ref={wheelRef}
+            className="h-full overflow-auto scrollbar-none" 
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+            onWheel={handleWheel}
+          >
             <div className="h-[70px]"></div> {/* Padding top */}
             {items.map((item, index) => {
               const value = typeof item === 'number' ? item : index;
@@ -118,10 +199,19 @@ const MobileDatePicker: React.FC<MobileDatePickerProps> = ({
                 <div 
                   key={index} 
                   className={cn(
-                    "h-[40px] flex items-center justify-center snap-start text-lg font-medium cursor-pointer transition-all",
+                    "h-[40px] flex items-center justify-center text-lg font-medium cursor-pointer transition-all",
                     isSelected ? "text-primary scale-110" : "text-gray-500"
                   )}
-                  onClick={() => onChange(value)}
+                  onClick={() => {
+                    onChange(value);
+                    // Прокручиваем к выбранному элементу при клике
+                    if (wheelRef.current) {
+                      wheelRef.current.scrollTo({
+                        top: index * 40 + 70,
+                        behavior: 'smooth'
+                      });
+                    }
+                  }}
                 >
                   {displayText}
                 </div>
