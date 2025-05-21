@@ -75,6 +75,26 @@ const DateSelector: React.FC<DateSelectorProps> = ({
       document.body.style.overflow = ''; // Восстанавливаем скролл
     };
   }, [isOpen]);
+  
+  // Прокручиваем колеса до выбранной даты при открытии
+  useEffect(() => {
+    if (isOpen && dayRef.current && monthRef.current && yearRef.current) {
+      // Устанавливаем скролл для дня
+      const dayIndex = days.indexOf(selectedDay);
+      if (dayIndex !== -1) {
+        dayRef.current.scrollTop = dayIndex * 40 + 70;
+      }
+      
+      // Устанавливаем скролл для месяца
+      monthRef.current.scrollTop = selectedMonth * 40 + 70;
+      
+      // Устанавливаем скролл для года
+      const yearIndex = years.indexOf(selectedYear);
+      if (yearIndex !== -1) {
+        yearRef.current.scrollTop = yearIndex * 40 + 70;
+      }
+    }
+  }, [isOpen, selectedDay, selectedMonth, selectedYear, days, years]);
 
   // Применение выбора даты
   const applyDate = () => {

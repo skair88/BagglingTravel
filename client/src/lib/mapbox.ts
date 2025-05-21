@@ -6,7 +6,8 @@
 const MAPBOX_API_URL = "https://api.mapbox.com";
 
 // API ключ Mapbox берем из переменных окружения
-const MAPBOX_API_KEY = process.env.MAPBOX_API_KEY;
+// В Vite нужно использовать import.meta.env вместо process.env
+const MAPBOX_API_KEY = import.meta.env.VITE_MAPBOX_API_KEY;
 
 /**
  * Интерфейс для результатов геокодирования

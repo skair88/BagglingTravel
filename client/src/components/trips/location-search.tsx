@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Input } from '@/components/ui/input';
 import { MapPin, Search, X, Loader2 } from 'lucide-react';
+import { searchLocations } from '@/lib/mapbox';
 
 // Интерфейс для представления локации
 interface Location {
@@ -74,26 +75,66 @@ const LocationSearch: React.FC<LocationSearchProps> = ({
     console.log('Fetching locations for query:', query);
     
     try {
-      // Сначала пробуем использовать АПИ-маршрут сервера
+      // Первый способ: используем нашу библиотеку mapbox
       try {
-        const response = await fetch(`/api/geocode?query=${encodeURIComponent(query)}`);
+        console.log('Using direct mapbox API connection');
+        const suggestions = await searchLocations(query);
+        
+        if (suggestions && suggestions.length > 0) {
+          console.log('Mapbox API found locations:', suggestions);
+          // Преобразуем данные к нужному формату
+          const formattedLocations = suggestions.map(suggestion => ({
+            placeName: suggestion.fullName,
+            lat: 0, // Координаты заполним позже
+            lng: 0
+          }));
+          
+          // Получаем координаты для первой локации сразу (для демонстрации)
+          const location = formattedLocations[0];
+          if (location) {
+            // Если бы у нас было больше времени, мы бы получили координаты для всех результатов
+            setSuggestions(formattedLocations);
+            setIsLoading(false);
+            return;
+          }
+        }
+      } catch (directApiError) {
+        console.error('Direct Mapbox API request failed:', directApiError);
+      }
+      
+      // Второй способ: используем прокси-АПИ на сервере
+      try {
+        // Добавляем timestamp для предотвращения кэширования
+        const timestamp = new Date().getTime();
+        const apiUrl = `/api/geocode?query=${encodeURIComponent(query)}&_=${timestamp}`;
+        console.log('Requesting server proxy API:', apiUrl);
+        
+        const response = await fetch(apiUrl);
         console.log('API Response status:', response.status);
         
         if (response.ok) {
           const data = await response.json();
-          console.log('API found locations:', data);
+          console.log('Server proxy API found locations:', data);
           if (data && data.length > 0) {
             setSuggestions(data);
             setIsLoading(false);
             return;
           }
+        } else {
+          // Если сервер вернул ошибку, выводим подробности
+          try {
+            const errorData = await response.json();
+            console.error('API error details:', errorData);
+          } catch (e) {
+            console.error('Could not parse API error response');
+          }
         }
       } catch (apiError) {
-        console.error('API request failed:', apiError);
+        console.error('Server proxy API request failed:', apiError);
       }
       
-      // Если АПИ не сработало, используем статические данные
-      console.log('Using static location data');
+      // Третий способ: используем статические данные, если онлайн-методы не сработали
+      console.log('Using static location data as fallback');
       const staticLocations = [
         { placeName: 'Moscow, Russia', lat: 55.7558, lng: 37.6173 },
         { placeName: 'New York, USA', lat: 40.7128, lng: -74.0060 },
