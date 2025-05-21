@@ -101,23 +101,35 @@ const MobileDatePicker: React.FC<MobileDatePickerProps> = ({
     setIsOpen(false);
   };
   
+  // Компонент колеса выбора для iOS-подобного пикера
+  const WheelItem = ({ 
+    items, 
+    selectedItem, 
+    onChange, 
+    formatter 
+  }: { 
+    items: number[] | string[], 
+    selectedItem: number, 
+    onChange: (value: number) => void, 
+    formatter?: (item: any) => string 
+  }) => {
+    const wheelRef = useRef<HTMLDivElement>(null);
+    const [startY, setStartY] = useState<number | null>(null);
+    const [scrolling, setScrolling] = useState(false);
+    
+    // Устанавливаем начальное положение скролла для выбранного элемента при монтировании
+    useEffect(() => {
+      if (wheelRef.current) {
+        const itemHeight = 40; // высота элемента в пикселях
+        const paddingTop = 70; // верхний отступ
+        const scrollToPosition = (typeof selectedItem === 'number' ? selectedItem : 0) * itemHeight + paddingTop;
+        
+        wheelRef.current.scrollTop = scrollToPosition;
+      }
+    }, [selectedItem, items]);
+    
   // Рендер iOS-like wheel picker с поддержкой свайпов
   const renderWheel = () => {
-    const renderWheelItems = (items: number[] | string[], selectedItem: number, onChange: (value: number) => void, formatter?: (item: any) => string) => {
-      const wheelRef = useRef<HTMLDivElement>(null);
-      const [startY, setStartY] = useState<number | null>(null);
-      const [scrolling, setScrolling] = useState(false);
-      
-      // Устанавливаем начальное положение скролла для выбранного элемента при монтировании
-      useEffect(() => {
-        if (wheelRef.current) {
-          const itemHeight = 40; // высота элемента в пикселях
-          const paddingTop = 70; // верхний отступ
-          const scrollToPosition = (typeof selectedItem === 'number' ? selectedItem : 0) * itemHeight + paddingTop;
-          
-          wheelRef.current.scrollTop = scrollToPosition;
-        }
-      }, [selectedItem, items]);
       
       // Обработчики событий для свайпов
       const handleTouchStart = (e: React.TouchEvent) => {

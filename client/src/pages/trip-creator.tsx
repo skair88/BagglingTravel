@@ -9,7 +9,7 @@ import LocationSearch from '@/components/trips/location-search';
 import WeatherForecast from '@/components/trips/weather-forecast';
 import { getWeatherForecast } from '@/lib/weather';
 import { useTrips } from '@/hooks/use-trips';
-import MobileDatePicker from '@/components/ui/mobile-date-picker';
+import DateSelector from '@/components/ui/date-selector';
 import BottomNav from '@/components/layout/bottom-nav';
 import EnvDisplay from '@/components/debug/env-display';
 import TravelersSelector from '@/components/trips/travelers-selector';
@@ -251,7 +251,7 @@ export default function TripCreator() {
           {/* Start Date */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">From</label>
-            <MobileDatePicker
+            <DateSelector
               selected={formData.startDate}
               onSelect={(date) => {
                 // When from date changes, set both dates in same month
@@ -278,7 +278,7 @@ export default function TripCreator() {
           {/* End Date */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">To</label>
-            <MobileDatePicker
+            <DateSelector
               selected={formData.endDate}
               onSelect={(date) => {
                 setFormData({ ...formData, endDate: date });
