@@ -94,6 +94,9 @@ const LocationSearch: React.FC<LocationSearchProps> = ({
             setIsLoading(false);
             return;
           }
+        } else {
+          const errorData = await response.text();
+          console.error('Server API error:', response.status, errorData);
         }
       } catch (apiError) {
         console.error('Server proxy API request failed:', apiError);
@@ -102,6 +105,7 @@ const LocationSearch: React.FC<LocationSearchProps> = ({
       // Пробуем прямое обращение к Mapbox API
       try {
         console.log('Using direct mapbox API connection');
+        console.log('VITE_MAPBOX_API_KEY available:', !!import.meta.env.VITE_MAPBOX_API_KEY);
         const suggestions = await searchLocations(query, 5, language);
         
         if (suggestions && suggestions.length > 0) {

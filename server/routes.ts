@@ -42,6 +42,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (!mapboxApiKey) {
         console.log("No Mapbox API key available");
+        console.log("Environment check:", {
+          NODE_ENV: process.env.NODE_ENV,
+          hasMapboxKey: !!process.env.MAPBOX_API_KEY
+        });
         return res.status(500).json({ error: 'Mapbox API key not configured' });
       } else {
         try {
