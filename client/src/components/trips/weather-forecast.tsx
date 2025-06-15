@@ -119,7 +119,7 @@ const WeatherForecast: React.FC<WeatherForecastProps> = ({ forecast, isLoading =
   return (
     <div className="mt-6">
       <div className="flex items-center justify-between mb-2">
-        <h2 className="text-lg font-medium">Weather information</h2>
+        <h2 className="text-lg font-medium">Weather information ({forecast.length} days)</h2>
         <div className="flex space-x-1">
           <button 
             className={`p-1 rounded-full ${canScrollLeft ? 'text-gray-700 hover:bg-gray-100' : 'text-gray-300 cursor-not-allowed'}`}

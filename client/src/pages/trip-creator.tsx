@@ -84,9 +84,10 @@ export default function TripCreator() {
       if (formData.location.lat !== 0 && formData.location.lng !== 0) {
         setIsLoading(true);
         
-        // Создаем ключ для кэширования прогноза погоды (только по координатам)
+        // Создаем ключ для кэширования прогноза погоды (координаты + даты поездки)
         const today = new Date().toDateString();
-        const cacheKey = `weather_7days_${formData.location.lat}_${formData.location.lng}_${today}`;
+        const tripDatesKey = `${formData.startDate.toDateString()}_${formData.endDate.toDateString()}`;
+        const cacheKey = `weather_trip_${formData.location.lat}_${formData.location.lng}_${tripDatesKey}_${today}`;
         
         // Проверяем наличие кэшированных данных за сегодня
         const cachedData = localStorage.getItem(cacheKey);
@@ -102,12 +103,12 @@ export default function TripCreator() {
               date: new Date(d.date)
             })));
           } else {
-            // Пытаемся получить свежий прогноз на 7 дней
+            // Пытаемся получить свежий прогноз на даты поездки + 7 дополнительных дней
             const forecast = await getWeatherForecast(
               formData.location.lat,
               formData.location.lng,
-              new Date(), // Используем текущую дату
-              new Date(Date.now() + 6 * 24 * 60 * 60 * 1000) // +6 дней
+              formData.startDate, // Используем дату начала поездки
+              formData.endDate // Используем дату окончания поездки
             );
             
             setWeatherForecast(forecast);
@@ -152,7 +153,7 @@ export default function TripCreator() {
     const timeoutId = setTimeout(fetchWeather, 300);
     
     return () => clearTimeout(timeoutId);
-  }, [formData.location]); // Убираем зависимость от дат
+  }, [formData.location, formData.startDate, formData.endDate]); // Добавляем зависимость от дат
   
   // Validate dates
   useEffect(() => {
