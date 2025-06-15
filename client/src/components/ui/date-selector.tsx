@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { format } from 'date-fns';
 import { Calendar as CalendarIcon, ChevronDown, X } from 'lucide-react';
@@ -34,6 +35,10 @@ const DateSelector: React.FC<DateSelectorProps> = ({
   const dayRef = useRef<HTMLDivElement>(null);
   const monthRef = useRef<HTMLDivElement>(null);
   const yearRef = useRef<HTMLDivElement>(null);
+
+  // Touch события для свайпов
+  const [touchStart, setTouchStart] = useState<{ y: number; scrollTop: number; element: HTMLDivElement | null }>({ y: 0, scrollTop: 0, element: null });
+  const [isDragging, setIsDragging] = useState(false);
 
   // Синхронизация внутреннего состояния с внешним пропсом
   useEffect(() => {
@@ -95,6 +100,61 @@ const DateSelector: React.FC<DateSelectorProps> = ({
       }
     }
   }, [isOpen, selectedDay, selectedMonth, selectedYear, days, years]);
+
+  // Функция для обновления выбранного значения на основе скролла
+  const updateSelectedValue = (element: HTMLDivElement, values: any[], setter: (value: any) => void) => {
+    const index = Math.round(element.scrollTop / 40);
+    if (index >= 0 && index < values.length) {
+      setter(values[index]);
+    }
+  };
+
+  // Touch события для свайпов
+  const handleTouchStart = (e: React.TouchEvent, element: HTMLDivElement) => {
+    const touch = e.touches[0];
+    setTouchStart({
+      y: touch.clientY,
+      scrollTop: element.scrollTop,
+      element: element
+    });
+    setIsDragging(true);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging || !touchStart.element) return;
+    
+    const touch = e.touches[0];
+    const deltaY = touchStart.y - touch.clientY;
+    const newScrollTop = touchStart.scrollTop + deltaY;
+    
+    touchStart.element.scrollTop = newScrollTop;
+    
+    // Обновляем выбранное значение во время свайпа
+    if (touchStart.element === dayRef.current) {
+      updateSelectedValue(touchStart.element, days, setSelectedDay);
+    } else if (touchStart.element === monthRef.current) {
+      updateSelectedValue(touchStart.element, monthNames, (_, index) => setSelectedMonth(index));
+    } else if (touchStart.element === yearRef.current) {
+      updateSelectedValue(touchStart.element, years, setSelectedYear);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (!isDragging || !touchStart.element) return;
+    
+    // Плавное выравнивание к ближайшему элементу
+    const element = touchStart.element;
+    const index = Math.round(element.scrollTop / 40);
+    const targetScrollTop = index * 40;
+    
+    element.scrollTo({
+      top: targetScrollTop,
+      behavior: 'smooth'
+    });
+    
+    setIsDragging(false);
+    setTouchStart({ y: 0, scrollTop: 0, element: null });
+  };
 
   // Применение выбора даты
   const applyDate = () => {
@@ -163,7 +223,11 @@ const DateSelector: React.FC<DateSelectorProps> = ({
               </div>
               
               {/* Содержимое модального окна */}
-              <div className="flex relative mb-6">
+              <div 
+                className="flex relative mb-6"
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
+              >
                 {/* Подсветка выбранного элемента */}
                 <div className="absolute left-0 right-0 top-[70px] h-[40px] bg-gray-100 rounded-lg pointer-events-none"></div>
                 
@@ -174,13 +238,11 @@ const DateSelector: React.FC<DateSelectorProps> = ({
                     ref={dayRef}
                     className="h-full overflow-auto scrollbar-none"
                     onScroll={() => {
-                      if (dayRef.current) {
-                        const index = Math.round(dayRef.current.scrollTop / 40);
-                        if (index >= 0 && index < days.length) {
-                          setSelectedDay(days[index]);
-                        }
+                      if (dayRef.current && !isDragging) {
+                        updateSelectedValue(dayRef.current, days, setSelectedDay);
                       }
                     }}
+                    onTouchStart={(e) => dayRef.current && handleTouchStart(e, dayRef.current)}
                   >
                     <div className="h-[70px]"></div>
                     {days.map((day) => (
@@ -190,7 +252,16 @@ const DateSelector: React.FC<DateSelectorProps> = ({
                           "h-[40px] flex items-center justify-center text-lg font-medium cursor-pointer transition-all",
                           selectedDay === day ? "text-primary scale-110" : "text-gray-500"
                         )}
-                        onClick={() => setSelectedDay(day)}
+                        onClick={() => {
+                          setSelectedDay(day);
+                          if (dayRef.current) {
+                            const index = days.indexOf(day);
+                            dayRef.current.scrollTo({
+                              top: index * 40,
+                              behavior: 'smooth'
+                            });
+                          }
+                        }}
                       >
                         {day}
                       </div>
@@ -206,13 +277,14 @@ const DateSelector: React.FC<DateSelectorProps> = ({
                     ref={monthRef}
                     className="h-full overflow-auto scrollbar-none"
                     onScroll={() => {
-                      if (monthRef.current) {
+                      if (monthRef.current && !isDragging) {
                         const index = Math.round(monthRef.current.scrollTop / 40);
                         if (index >= 0 && index < monthNames.length) {
                           setSelectedMonth(index);
                         }
                       }
                     }}
+                    onTouchStart={(e) => monthRef.current && handleTouchStart(e, monthRef.current)}
                   >
                     <div className="h-[70px]"></div>
                     {monthNames.map((month, index) => (
@@ -222,7 +294,15 @@ const DateSelector: React.FC<DateSelectorProps> = ({
                           "h-[40px] flex items-center justify-center text-lg font-medium cursor-pointer transition-all",
                           selectedMonth === index ? "text-primary scale-110" : "text-gray-500"
                         )}
-                        onClick={() => setSelectedMonth(index)}
+                        onClick={() => {
+                          setSelectedMonth(index);
+                          if (monthRef.current) {
+                            monthRef.current.scrollTo({
+                              top: index * 40,
+                              behavior: 'smooth'
+                            });
+                          }
+                        }}
                       >
                         {month.substring(0, 3)}
                       </div>
@@ -238,13 +318,11 @@ const DateSelector: React.FC<DateSelectorProps> = ({
                     ref={yearRef}
                     className="h-full overflow-auto scrollbar-none"
                     onScroll={() => {
-                      if (yearRef.current) {
-                        const index = Math.round(yearRef.current.scrollTop / 40);
-                        if (index >= 0 && index < years.length) {
-                          setSelectedYear(years[index]);
-                        }
+                      if (yearRef.current && !isDragging) {
+                        updateSelectedValue(yearRef.current, years, setSelectedYear);
                       }
                     }}
+                    onTouchStart={(e) => yearRef.current && handleTouchStart(e, yearRef.current)}
                   >
                     <div className="h-[70px]"></div>
                     {years.map((year) => (
@@ -254,7 +332,16 @@ const DateSelector: React.FC<DateSelectorProps> = ({
                           "h-[40px] flex items-center justify-center text-lg font-medium cursor-pointer transition-all",
                           selectedYear === year ? "text-primary scale-110" : "text-gray-500"
                         )}
-                        onClick={() => setSelectedYear(year)}
+                        onClick={() => {
+                          setSelectedYear(year);
+                          if (yearRef.current) {
+                            const index = years.indexOf(year);
+                            yearRef.current.scrollTo({
+                              top: index * 40,
+                              behavior: 'smooth'
+                            });
+                          }
+                        }}
                       >
                         {year}
                       </div>
