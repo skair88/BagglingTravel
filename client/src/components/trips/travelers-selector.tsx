@@ -144,11 +144,14 @@ const TravelersSelector: React.FC<TravelersSelectorProps> = ({
             .map(traveler => (
               <div key={traveler.id} className="flex items-center justify-between py-3">
                 <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    checked={traveler.count > 0}
-                    onChange={(e) => handleCheckboxChange(traveler.id, e.target.checked)}
-                    className="w-5 h-5 mr-3 accent-amber-500 cursor-pointer"
+                  <div
+                    onClick={() => handleCheckboxChange(traveler.id, traveler.count === 0)}
+                    className={cn(
+                      "w-5 h-5 mr-3 rounded border-2 cursor-pointer transition-colors",
+                      traveler.count > 0 
+                        ? "bg-amber-500 border-amber-500" 
+                        : "bg-white border-gray-300"
+                    )}
                   />
                   <span className="text-base">{traveler.label}</span>
                 </div>
@@ -201,11 +204,14 @@ const TravelersSelector: React.FC<TravelersSelectorProps> = ({
               <div key={traveler.id} className="flex items-center justify-between py-3">
                 <div className="flex-1">
                   <div className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={traveler.count > 0}
-                      onChange={(e) => handleCheckboxChange(traveler.id, e.target.checked)}
-                      className="w-5 h-5 mr-3 accent-amber-500 cursor-pointer"
+                    <div
+                      onClick={() => handleCheckboxChange(traveler.id, traveler.count === 0)}
+                      className={cn(
+                        "w-5 h-5 mr-3 rounded border-2 cursor-pointer transition-colors",
+                        traveler.count > 0 
+                          ? "bg-amber-500 border-amber-500" 
+                          : "bg-white border-gray-300"
+                      )}
                     />
                     <span className="text-base">{traveler.label}</span>
                   </div>
@@ -252,8 +258,12 @@ const TravelersSelector: React.FC<TravelersSelectorProps> = ({
       <div className="fixed bottom-16 left-0 right-0 px-6 py-2 bg-gray-50 pb-4">
         <Button
           onClick={handleNext}
-          className="w-full py-2 text-base"
-          variant="outline"
+          className={cn(
+            "w-full py-3 text-base font-medium rounded-xl",
+            hasTravelers 
+              ? "bg-amber-500 hover:bg-amber-600 text-white" 
+              : "bg-gray-200 text-gray-400 cursor-not-allowed"
+          )}
           disabled={!hasTravelers}
         >
           Next
