@@ -77,7 +77,11 @@ const TravelersSelector: React.FC<TravelersSelectorProps> = ({
 
       {/* Прогрессбар */}
       <div className="px-6 py-4">
-        <ProgressBar currentStep={3} totalSteps={4} />
+        <div className="flex space-x-2">
+          <div className="flex-1 h-2 bg-amber-500 rounded-full"></div>
+          <div className="flex-1 h-2 bg-amber-500 rounded-full"></div>
+          <div className="flex-1 h-2 bg-gray-200 rounded-full"></div>
+        </div>
       </div>
 
       {/* Заголовок */}
@@ -88,7 +92,7 @@ const TravelersSelector: React.FC<TravelersSelectorProps> = ({
       <div className="flex-1 overflow-auto px-6">
         {/* Секция взрослых */}
         <div className="mb-6">
-          <div className="flex items-center mb-4">
+          <div className="flex items-center justify-center mb-4">
             <div className="w-6 h-6 rounded-full flex items-center justify-center bg-gray-200 mr-2">
               <span className="text-gray-700 text-sm">👤</span>
             </div>
@@ -133,7 +137,7 @@ const TravelersSelector: React.FC<TravelersSelectorProps> = ({
 
         {/* Секция детей */}
         <div>
-          <div className="flex items-center mb-4">
+          <div className="flex items-center justify-center mb-4">
             <div className="w-6 h-6 rounded-full flex items-center justify-center bg-gray-200 mr-2">
               <span className="text-gray-700 text-sm">👶</span>
             </div>
