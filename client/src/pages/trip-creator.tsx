@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation } from 'wouter';
 import { navigate } from 'wouter/use-browser-location';
-import { MapPin } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { TripButton } from '@/components/ui/trip-button';
 import Header from '@/components/layout/header';
 import ProgressBar from '@/components/trips/progress-bar';
 import LocationSearch from '@/components/trips/location-search';
@@ -11,7 +9,6 @@ import { getWeatherForecast } from '@/lib/weather';
 import { useTrips } from '@/hooks/use-trips';
 import DateSelector from '@/components/ui/date-selector';
 import BottomNav from '@/components/layout/bottom-nav';
-import EnvDisplay from '@/components/debug/env-display';
 import TravelersSelector from '@/components/trips/travelers-selector';
 import ActivitiesSelector from '@/components/trips/activities-selector';
 
@@ -69,7 +66,6 @@ const defaultTripData: TripWizardData = {
 };
 
 export default function TripCreator() {
-  const location = useLocation();
   const { createTrip } = useTrips();
   
   // Form state
@@ -259,7 +255,7 @@ export default function TripCreator() {
   
   // Рендер экрана с деталями поездки
   const renderTripDetails = () => (
-    <div className="p-4 flex-1">
+    <div className="p-4 flex-1 flex flex-col min-h-screen bg-gray-50">
       <ProgressBar currentStep={1} totalSteps={2} />
       
       <div className="mt-6">
@@ -330,24 +326,19 @@ export default function TripCreator() {
         <WeatherForecast forecast={weatherForecast} isLoading={isLoading} />
       </div>
       
-      {/* Debug information */}
-      <div className="mt-6">
-        <EnvDisplay />
-      </div>
-      
       {/* Next Button */}
-      <div className="mt-8">
-        <Button 
-          className="w-full"
+      <div className="px-6 pb-6 items-center justify-center flex mt-auto">
+        <TripButton 
+          className="w-full py-2 text-base"
           onClick={handleGoToTravelers}
           disabled={!formData.destination || isDateError || isLoading}
         >
           Next
-        </Button>
+        </TripButton>
       </div>
     </div>
   );
-  
+
   // Рендер экрана выбора путешественников
   const renderTravelersSelector = () => (
     <div className="flex-1 flex flex-col">
@@ -373,7 +364,7 @@ export default function TripCreator() {
       />
     </div>
   );
-  
+
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       {currentStep === 'trip-details' ? (
