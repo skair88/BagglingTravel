@@ -51,7 +51,7 @@ export function isOnline(): boolean {
 }
 
 /**
- * Получает прогноз погоды от Open-Meteo API
+ * Получает прогноз погоды от Open-Meteo API на 7 дней
  */
 export async function getWeatherForecast(
   lat: number,
@@ -66,9 +66,11 @@ export async function getWeatherForecast(
       return [];
     }
     
-    // Форматируем даты для API
+    // Форматируем даты для API (гарантируем 7 дней)
     const startDateStr = formatDate(startDate);
-    const endDateStr = formatDate(endDate);
+    const actualEndDate = new Date(startDate);
+    actualEndDate.setDate(actualEndDate.getDate() + 6); // Ровно 7 дней
+    const endDateStr = formatDate(actualEndDate);
     
     // Формируем URL для запроса к Open-Meteo API
     const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=temperature_2m_max,weathercode&timezone=auto&start_date=${startDateStr}&end_date=${endDateStr}`;

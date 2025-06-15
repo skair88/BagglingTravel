@@ -98,6 +98,25 @@ export default function TripCreator() {
         try {
           if (cachedData && !navigator.onLine) {
             // Если есть кэшированные данные и нет подключения к интернету, используем их
+            const parsed = JSON.parse(cachedData);
+            setWeatherForecast(parsed.map((item: any) => ({
+              ...item,
+              date: new Date(item.date)
+            })));
+            console.log('Using cached weather data');
+          } else {
+            // Загружаем свежий прогноз на 7 дней
+            const forecast = await getWeatherForecast(
+              formData.location.lat,
+              formData.location.lng,
+              formData.startDate,
+              formData.endDate
+            );
+            
+            setWeatherForecast(forecast);
+            
+            // Кэшируем данные
+            localStorage.setItem(cacheKey, JSON.stringify(forecast));
             console.log('Using cached weather forecast (offline)');
             const parsed = JSON.parse(cachedData);
             // Конвертируем строки дат в объекты Date
