@@ -78,9 +78,7 @@ const TripWizard: React.FC<TripWizardProps> = ({ onComplete }) => {
   useEffect(() => {
     const fetchWeather = async () => {
       if (tripData.location.lat !== 0 && tripData.location.lng !== 0) {
-        setIsLoading(true);
         try {
-          // Загружаем прогноз на 7 дней начиная с даты поездки
           const forecast = await getWeatherForecast(
             tripData.location.lat,
             tripData.location.lng,
@@ -90,16 +88,11 @@ const TripWizard: React.FC<TripWizardProps> = ({ onComplete }) => {
           setWeatherForecast(forecast);
         } catch (error) {
           console.error('Error fetching weather:', error);
-          setWeatherForecast([]); // Очищаем прогноз при ошибке
-        } finally {
-          setIsLoading(false);
         }
       }
     };
 
-    // Добавляем небольшую задержку для избежания слишком частых запросов
-    const timeoutId = setTimeout(fetchWeather, 300);
-    return () => clearTimeout(timeoutId);
+    fetchWeather();
   }, [tripData.location, tripData.startDate, tripData.endDate]);
 
   // Handle destination selection
