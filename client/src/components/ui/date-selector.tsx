@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { format } from 'date-fns';
 import { Calendar as CalendarIcon, ChevronDown, X } from 'lucide-react';
@@ -35,19 +34,6 @@ const DateSelector: React.FC<DateSelectorProps> = ({
   const dayRef = useRef<HTMLDivElement>(null);
   const monthRef = useRef<HTMLDivElement>(null);
   const yearRef = useRef<HTMLDivElement>(null);
-
-  // Состояние для свайпов
-  const [touchState, setTouchState] = useState<{
-    startY: number | null;
-    startTime: number;
-    isScrolling: boolean;
-    activeWheel: 'day' | 'month' | 'year' | null;
-  }>({
-    startY: null,
-    startTime: 0,
-    isScrolling: false,
-    activeWheel: null
-  });
 
   // Синхронизация внутреннего состояния с внешним пропсом
   useEffect(() => {
@@ -93,132 +79,22 @@ const DateSelector: React.FC<DateSelectorProps> = ({
   // Прокручиваем колеса до выбранной даты при открытии
   useEffect(() => {
     if (isOpen && dayRef.current && monthRef.current && yearRef.current) {
-      const itemHeight = 40;
-      const centerOffset = 70; // отступ для центрирования
-      
       // Центрируем скролл для дня
       const dayIndex = days.indexOf(selectedDay);
       if (dayIndex !== -1) {
-        dayRef.current.scrollTop = dayIndex * itemHeight;
+        dayRef.current.scrollTop = dayIndex * 40;
       }
       
       // Центрируем скролл для месяца
-      monthRef.current.scrollTop = selectedMonth * itemHeight;
+      monthRef.current.scrollTop = selectedMonth * 40;
       
       // Центрируем скролл для года
       const yearIndex = years.indexOf(selectedYear);
       if (yearIndex !== -1) {
-        yearRef.current.scrollTop = yearIndex * itemHeight;
+        yearRef.current.scrollTop = yearIndex * 40;
       }
     }
   }, [isOpen, selectedDay, selectedMonth, selectedYear, days, years]);
-
-  // Функция для обновления значения на основе скролла
-  const updateValueFromScroll = (
-    scrollElement: HTMLDivElement, 
-    items: any[], 
-    setValue: (value: any) => void,
-    isMonthIndex: boolean = false
-  ) => {
-    const itemHeight = 40;
-    const centerOffset = 70;
-    const scrollTop = scrollElement.scrollTop;
-    
-    let index = Math.round((scrollTop - centerOffset + itemHeight / 2) / itemHeight);
-    index = Math.max(0, Math.min(index, items.length - 1));
-    
-    const value = isMonthIndex ? index : items[index];
-    setValue(value);
-    
-    // Плавная прокрутка к выбранному элементу
-    const targetScroll = index * itemHeight + centerOffset;
-    scrollElement.scrollTo({
-      top: targetScroll,
-      behavior: 'smooth'
-    });
-  };
-
-  // Обработчики тач-событий
-  const handleTouchStart = (e: React.TouchEvent, wheelType: 'day' | 'month' | 'year') => {
-    e.preventDefault();
-    setTouchState({
-      startY: e.touches[0].clientY,
-      startTime: Date.now(),
-      isScrolling: true,
-      activeWheel: wheelType
-    });
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (!touchState.isScrolling || !touchState.startY || !touchState.activeWheel) return;
-    
-    e.preventDefault();
-    const currentY = e.touches[0].clientY;
-    const deltaY = touchState.startY - currentY;
-    
-    let scrollElement: HTMLDivElement | null = null;
-    switch (touchState.activeWheel) {
-      case 'day':
-        scrollElement = dayRef.current;
-        break;
-      case 'month':
-        scrollElement = monthRef.current;
-        break;
-      case 'year':
-        scrollElement = yearRef.current;
-        break;
-    }
-    
-    if (scrollElement) {
-      scrollElement.scrollTop += deltaY * 1.5; // Увеличиваем чувствительность
-    }
-    
-    setTouchState(prev => ({
-      ...prev,
-      startY: currentY
-    }));
-  };
-
-  const handleTouchEnd = () => {
-    if (!touchState.activeWheel) return;
-    
-    let scrollElement: HTMLDivElement | null = null;
-    let items: any[] = [];
-    let setValue: (value: any) => void = () => {};
-    let isMonthIndex = false;
-    
-    switch (touchState.activeWheel) {
-      case 'day':
-        scrollElement = dayRef.current;
-        items = days;
-        setValue = setSelectedDay;
-        break;
-      case 'month':
-        scrollElement = monthRef.current;
-        items = monthNames;
-        setValue = setSelectedMonth;
-        isMonthIndex = true;
-        break;
-      case 'year':
-        scrollElement = yearRef.current;
-        items = years;
-        setValue = setSelectedYear;
-        break;
-    }
-    
-    if (scrollElement) {
-      setTimeout(() => {
-        updateValueFromScroll(scrollElement!, items, setValue, isMonthIndex);
-      }, 100);
-    }
-    
-    setTouchState({
-      startY: null,
-      startTime: 0,
-      isScrolling: false,
-      activeWheel: null
-    });
-  };
 
   // Применение выбора даты
   const applyDate = () => {
@@ -237,70 +113,6 @@ const DateSelector: React.FC<DateSelectorProps> = ({
     }
     setIsOpen(false);
   };
-
-  // Компонент колеса выбора
-  const WheelPicker = ({ 
-    items, 
-    selectedValue, 
-    onValueChange, 
-    wheelRef, 
-    wheelType,
-    formatter 
-  }: { 
-    items: any[], 
-    selectedValue: any, 
-    onValueChange: (value: any) => void, 
-    wheelRef: React.RefObject<HTMLDivElement>,
-    wheelType: 'day' | 'month' | 'year',
-    formatter?: (item: any, index?: number) => string 
-  }) => (
-    <div className="relative flex-1 overflow-hidden h-[180px] mx-1">
-      <div className="absolute inset-0 pointer-events-none z-10 bg-gradient-to-b from-white via-transparent to-white"></div>
-      <div 
-        ref={wheelRef}
-        className="h-full overflow-auto scrollbar-none touch-pan-y"
-        style={{ WebkitOverflowScrolling: 'touch' }}
-        onTouchStart={(e) => handleTouchStart(e, wheelType)}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-        onScroll={() => {
-          if (!touchState.isScrolling && wheelRef.current) {
-            const isMonthIndex = wheelType === 'month';
-            updateValueFromScroll(wheelRef.current, items, onValueChange, isMonthIndex);
-          }
-        }}
-      >
-        <div className="h-[70px]"></div>
-        {items.map((item, index) => {
-          const value = wheelType === 'month' ? index : item;
-          const isSelected = selectedValue === value;
-          const displayText = formatter ? formatter(item, index) : item.toString();
-          
-          return (
-            <div 
-              key={`${wheelType}-${index}`}
-              className={cn(
-                "h-[40px] flex items-center justify-center text-lg font-medium cursor-pointer transition-all",
-                isSelected ? "text-primary scale-110" : "text-gray-500"
-              )}
-              onClick={() => {
-                onValueChange(value);
-                if (wheelRef.current) {
-                  wheelRef.current.scrollTo({
-                    top: index * 40 + 70,
-                    behavior: 'smooth'
-                  });
-                }
-              }}
-            >
-              {displayText}
-            </div>
-          );
-        })}
-        <div className="h-[70px]"></div>
-      </div>
-    </div>
-  );
 
   return (
     <div className={cn("relative", className)}>
@@ -353,35 +165,103 @@ const DateSelector: React.FC<DateSelectorProps> = ({
               {/* Содержимое модального окна */}
               <div className="flex relative mb-6">
                 {/* Подсветка выбранного элемента */}
-                <div className="absolute left-0 right-0 top-[70px] h-[40px] bg-gray-100 rounded-lg pointer-events-none z-20"></div>
+                <div className="absolute left-0 right-0 top-[70px] h-[40px] bg-gray-100 rounded-lg pointer-events-none"></div>
                 
                 {/* Колесо выбора дня */}
-                <WheelPicker
-                  items={days}
-                  selectedValue={selectedDay}
-                  onValueChange={setSelectedDay}
-                  wheelRef={dayRef}
-                  wheelType="day"
-                />
+                <div className="relative flex-1 overflow-hidden h-[180px] mx-1">
+                  <div className="absolute inset-0 pointer-events-none z-10 bg-gradient-to-b from-white via-transparent to-white"></div>
+                  <div 
+                    ref={dayRef}
+                    className="h-full overflow-auto scrollbar-none"
+                    onScroll={() => {
+                      if (dayRef.current) {
+                        const index = Math.round(dayRef.current.scrollTop / 40);
+                        if (index >= 0 && index < days.length) {
+                          setSelectedDay(days[index]);
+                        }
+                      }
+                    }}
+                  >
+                    <div className="h-[70px]"></div>
+                    {days.map((day) => (
+                      <div 
+                        key={`day-${day}`}
+                        className={cn(
+                          "h-[40px] flex items-center justify-center text-lg font-medium cursor-pointer transition-all",
+                          selectedDay === day ? "text-primary scale-110" : "text-gray-500"
+                        )}
+                        onClick={() => setSelectedDay(day)}
+                      >
+                        {day}
+                      </div>
+                    ))}
+                    <div className="h-[70px]"></div>
+                  </div>
+                </div>
                 
                 {/* Колесо выбора месяца */}
-                <WheelPicker
-                  items={monthNames}
-                  selectedValue={selectedMonth}
-                  onValueChange={setSelectedMonth}
-                  wheelRef={monthRef}
-                  wheelType="month"
-                  formatter={(month: string) => month.substring(0, 3)}
-                />
+                <div className="relative flex-1 overflow-hidden h-[180px] mx-1">
+                  <div className="absolute inset-0 pointer-events-none z-10 bg-gradient-to-b from-white via-transparent to-white"></div>
+                  <div 
+                    ref={monthRef}
+                    className="h-full overflow-auto scrollbar-none"
+                    onScroll={() => {
+                      if (monthRef.current) {
+                        const index = Math.round(monthRef.current.scrollTop / 40);
+                        if (index >= 0 && index < monthNames.length) {
+                          setSelectedMonth(index);
+                        }
+                      }
+                    }}
+                  >
+                    <div className="h-[70px]"></div>
+                    {monthNames.map((month, index) => (
+                      <div 
+                        key={`month-${index}`}
+                        className={cn(
+                          "h-[40px] flex items-center justify-center text-lg font-medium cursor-pointer transition-all",
+                          selectedMonth === index ? "text-primary scale-110" : "text-gray-500"
+                        )}
+                        onClick={() => setSelectedMonth(index)}
+                      >
+                        {month.substring(0, 3)}
+                      </div>
+                    ))}
+                    <div className="h-[70px]"></div>
+                  </div>
+                </div>
                 
                 {/* Колесо выбора года */}
-                <WheelPicker
-                  items={years}
-                  selectedValue={selectedYear}
-                  onValueChange={setSelectedYear}
-                  wheelRef={yearRef}
-                  wheelType="year"
-                />
+                <div className="relative flex-1 overflow-hidden h-[180px] mx-1">
+                  <div className="absolute inset-0 pointer-events-none z-10 bg-gradient-to-b from-white via-transparent to-white"></div>
+                  <div 
+                    ref={yearRef}
+                    className="h-full overflow-auto scrollbar-none"
+                    onScroll={() => {
+                      if (yearRef.current) {
+                        const index = Math.round(yearRef.current.scrollTop / 40);
+                        if (index >= 0 && index < years.length) {
+                          setSelectedYear(years[index]);
+                        }
+                      }
+                    }}
+                  >
+                    <div className="h-[70px]"></div>
+                    {years.map((year) => (
+                      <div 
+                        key={`year-${year}`}
+                        className={cn(
+                          "h-[40px] flex items-center justify-center text-lg font-medium cursor-pointer transition-all",
+                          selectedYear === year ? "text-primary scale-110" : "text-gray-500"
+                        )}
+                        onClick={() => setSelectedYear(year)}
+                      >
+                        {year}
+                      </div>
+                    ))}
+                    <div className="h-[70px]"></div>
+                  </div>
+                </div>
               </div>
               
               {/* Кнопки действий */}
