@@ -46,7 +46,7 @@ const defaultTravelers: TravelerType[] = [
   // Взрослые
   { id: 'men', type: 'adult', subtype: 'men', label: 'Men', count: 1 },
   { id: 'women', type: 'adult', subtype: 'women', label: 'Women', count: 1 },
-  
+
   // Дети
   { id: 'baby', type: 'kid', subtype: 'baby', label: 'Baby', description: 'during pregnancy, at birth and up to 1 year', count: 0 },
   { id: 'toddler', type: 'kid', subtype: 'toddler', label: 'Toddler', description: '1 to 3 years', count: 0 },
@@ -67,17 +67,17 @@ const defaultTripData: TripWizardData = {
 
 export default function TripCreator() {
   const { createTrip } = useTrips();
-  
+
   // Form state
   const [formData, setFormData] = useState<TripWizardData>(defaultTripData);
   const [locationInput, setLocationInput] = useState('');
   const [weatherForecast, setWeatherForecast] = useState<WeatherForecast[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isDateError, setIsDateError] = useState(false);
-  
+
   // Wizard state
   const [currentStep, setCurrentStep] = useState<'trip-details' | 'travelers' | 'activities'>('trip-details');
-  
+
   // Fetch weather forecast when location and dates are set
   useEffect(() => {
     const fetchWeather = async () => {
@@ -88,13 +88,13 @@ export default function TripCreator() {
         formData.endDate
       ) {
         setIsLoading(true);
-        
+
         // Создаем ключ для кэширования прогноза погоды
         const cacheKey = `weather_${formData.location.lat}_${formData.location.lng}_${formData.startDate.getTime()}_${formData.endDate.getTime()}`;
-        
+
         // Проверяем наличие кэшированных данных
         const cachedData = localStorage.getItem(cacheKey);
-        
+
         try {
           if (cachedData && !navigator.onLine) {
             // Если есть кэшированные данные и нет подключения к интернету, используем их
@@ -113,9 +113,9 @@ export default function TripCreator() {
               formData.startDate,
               formData.endDate
             );
-            
+
             setWeatherForecast(forecast);
-            
+
             // Кэшируем полученный прогноз
             if (forecast.length > 0) {
               try {
@@ -131,7 +131,7 @@ export default function TripCreator() {
           }
         } catch (error) {
           console.error('Failed to fetch weather:', error);
-          
+
           // При ошибке проверяем наличие кэшированного прогноза
           if (cachedData) {
             console.log('Using cached weather forecast (after error)');
@@ -151,10 +151,10 @@ export default function TripCreator() {
         }
       }
     };
-    
+
     fetchWeather();
   }, [formData.location, formData.startDate, formData.endDate]);
-  
+
   // Validate dates
   useEffect(() => {
     if (formData.startDate && formData.endDate) {
@@ -165,7 +165,7 @@ export default function TripCreator() {
       }
     }
   }, [formData.startDate, formData.endDate]);
-  
+
   // Handle location selection
   const handleLocationSelect = (location: { placeName: string; lat: number; lng: number }) => {
     setFormData({
@@ -174,17 +174,17 @@ export default function TripCreator() {
       location: { lat: location.lat, lng: location.lng },
     });
   };
-  
+
   // Обработчик для перехода на экран выбора путешественников
   const handleGoToTravelers = () => {
     // Валидация формы
     if (!formData.destination || isDateError) {
       return;
     }
-    
+
     setCurrentStep('travelers');
   };
-  
+
   // Обработчик для возврата к предыдущему экрану
   const handleGoBack = () => {
     if (currentStep === 'travelers') {
@@ -193,12 +193,12 @@ export default function TripCreator() {
       setCurrentStep('travelers');
     }
   };
-  
+
   // Обработчик для перехода от путешественников к активностям
   const handleGoToActivities = () => {
     setCurrentStep('activities');
   };
-  
+
   // Обработчик для сохранения информации о путешественниках
   const handleSaveTravelers = (travelers: TravelerType[]) => {
     setFormData({
@@ -206,7 +206,7 @@ export default function TripCreator() {
       travelers
     });
   };
-  
+
   // Обработчик для сохранения выбранных активностей
   const handleSaveActivities = (activities: string[]) => {
     setFormData({
@@ -214,18 +214,18 @@ export default function TripCreator() {
       activities
     });
   };
-  
+
   // Handle form submission
   const handleSaveTrip = async () => {
     // Валидация формы
     if (!formData.destination || isDateError) {
       return;
     }
-    
+
     // Create trip
     try {
       setIsLoading(true);
-      
+
       const tripData = {
         destination: formData.destination,
         location: formData.location,
@@ -234,10 +234,10 @@ export default function TripCreator() {
         purpose: 'vacation', // Используем стандартное значение
         activities: formData.activities, // Включаем выбранные активности
       };
-      
+
       // Создаем поездку и получаем id
       const createdTrip = await createTrip(tripData);
-      
+
       // Проверяем, была ли нажата кнопка Generate List
       // Если да, переходим на страницу списка вещей
       // Если нет, возвращаемся на главную
@@ -252,15 +252,15 @@ export default function TripCreator() {
       setIsLoading(false);
     }
   };
-  
+
   // Рендер экрана с деталями поездки
   const renderTripDetails = () => (
-    <div className="flex flex-col h-screen bg-gray-50">
-      {/* Scrollable content */}
-      <div className="flex-1 overflow-y-auto p-4 pb-32">
+    <div className="h-screen flex flex-col bg-gray-50 overflow-hidden">
+      {/* Content area - calculated height */}
+      <div className="flex-1 p-4" style={{ height: 'calc(100vh - 120px)' }}>
         <ProgressBar currentStep={1} totalSteps={2} />
-        
-        <div className="mt-6">
+
+        <div className="mt-4">
           <h2 className="text-center text-lg font-medium mb-3">Direction</h2>
           <LocationSearch
             value={locationInput}
@@ -268,10 +268,10 @@ export default function TripCreator() {
             onLocationSelect={handleLocationSelect}
           />
         </div>
-        
-        <div className="mt-6">
+
+        <div className="mt-4">
           <h2 className="text-center text-lg font-medium mb-3">Dates</h2>
-          
+
           <div className="grid grid-cols-2 gap-4">
             {/* Start Date */}
             <div>
@@ -283,12 +283,12 @@ export default function TripCreator() {
                   const newEndDate = new Date(formData.endDate);
                   newEndDate.setFullYear(date.getFullYear());
                   newEndDate.setMonth(date.getMonth());
-                  
+
                   // If end date becomes before start date, adjust it
                   if (newEndDate < date) {
                     newEndDate.setDate(date.getDate() + 7);
                   }
-                  
+
                   setFormData({
                     ...formData,
                     startDate: date,
@@ -299,7 +299,7 @@ export default function TripCreator() {
                 placeholder="Pick a date"
               />
             </div>
-            
+
             {/* End Date */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">To</label>
@@ -314,25 +314,25 @@ export default function TripCreator() {
               />
             </div>
           </div>
-          
+
           {isDateError && (
             <p className="text-sm text-red-500 mt-1">
               End date must be after or equal to start date
             </p>
           )}
         </div>
-        
+
         {/* Weather Forecast */}
-        <div className="mt-6">
+        <div className="mt-4">
           <h2 className="text-center text-lg font-medium mb-3">Weather information</h2>
           <WeatherForecast forecast={weatherForecast} isLoading={isLoading} />
         </div>
       </div>
-      
+
       {/* Fixed Next Button */}
-      <div className="fixed bottom-16 left-0 right-0 px-6 py-4 bg-gray-50">
+      <div className="h-16 px-6 py-2 bg-gray-50 border-t border-gray-200 flex items-center">
         <TripButton 
-          className="w-full py-2 text-base"
+          className="w-full py-3 text-base"
           onClick={handleGoToTravelers}
           disabled={!formData.destination || isDateError || isLoading}
         >
@@ -353,7 +353,7 @@ export default function TripCreator() {
       />
     </div>
   );
-  
+
   // Рендер экрана выбора активностей
   const renderActivitiesSelector = () => (
     <div className="flex-1 flex flex-col">
