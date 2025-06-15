@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus } from "lucide-react";
 import { cn } from '@/lib/utils';
 import Header from '@/components/layout/header';
@@ -7,6 +7,7 @@ import ProgressBar from '@/components/trips/progress-bar';
 import BottomNav from '@/components/layout/bottom-nav';
 import { TripButton } from '@/components/ui/trip-button';
 import { Button } from "@/components/ui/button";
+import { predictActivities, getRecommendedActivities } from '@/lib/activity-predictor';
 
 // Иконки для активностей
 const ActivityIcons = {
@@ -66,13 +67,17 @@ interface ActivitiesSelectorProps {
   onBack: () => void;
   onSaveActivities: (activities: ActivityType[]) => void;
   initialActivities?: ActivityType[];
+  location?: { lat: number; lng: number };
+  temperatures?: number[];
 }
 
 // Компонент выбора активностей
 const ActivitiesSelector: React.FC<ActivitiesSelectorProps> = ({
   onBack,
   onSaveActivities,
-  initialActivities = []
+  initialActivities = [],
+  location,
+  temperatures = []
 }) => {
   // Доступные активности
   const defaultActivities: Activity[] = [
@@ -87,6 +92,31 @@ const ActivitiesSelector: React.FC<ActivitiesSelectorProps> = ({
   const [customActivities, setCustomActivities] = useState<Activity[]>([]);
   const [showAddCustom, setShowAddCustom] = useState(false);
   const [newActivityName, setNewActivityName] = useState('');
+  const [isPredicting, setIsPredicting] = useState(false);
+  
+  // Автоматическое предсказание активностей при загрузке компонента
+  useEffect(() => {
+    const predictAndSetActivities = async () => {
+      if (location && location.lat !== 0 && location.lng !== 0 && selectedActivities.length === 0) {
+        setIsPredicting(true);
+        try {
+          const predictions = await predictActivities(location.lat, location.lng, temperatures);
+          const recommendedActivities = getRecommendedActivities(predictions);
+          
+          if (recommendedActivities.length > 0) {
+            setSelectedActivities(recommendedActivities);
+            console.log('Auto-predicted activities:', recommendedActivities);
+          }
+        } catch (error) {
+          console.error('Error predicting activities:', error);
+        } finally {
+          setIsPredicting(false);
+        }
+      }
+    };
+    
+    predictAndSetActivities();
+  }, [location, temperatures]);
   
   // Все активности (стандартные + пользовательские)
   const allActivities = [...defaultActivities, ...customActivities];
@@ -153,7 +183,9 @@ const ActivitiesSelector: React.FC<ActivitiesSelectorProps> = ({
         {/* Заголовок */}
         <div className="mb-6">
           <h1 className="text-xl font-medium text-center">Activities</h1>
-          <p className="text-gray-600 text-center mt-2">Select activities you plan to do</p>
+          <p className="text-gray-600 text-center mt-2">
+            {isPredicting ? 'Predicting activities...' : 'Select activities you plan to do'}
+          </p>
         </div>
         
         {/* Сетка активностей */}

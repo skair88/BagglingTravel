@@ -394,6 +394,8 @@ export default function TripCreator() {
             handleSaveTrip();
           }}
           initialActivities={formData.activities}
+          location={formData.location}
+          temperatures={weatherForecast.map(day => day.temperature)}
         />
       )}
     </div>
