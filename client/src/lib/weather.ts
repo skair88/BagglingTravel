@@ -51,13 +51,14 @@ export function isOnline(): boolean {
 }
 
 /**
- * Получает прогноз погоды от Open-Meteo API для 7 дней
+ * Получает прогноз погоды от Open-Meteo API для определенного периода
  */
 export async function getWeatherForecast(
   lat: number,
   lng: number,
   startDate: Date,
-  endDate: Date
+  endDate: Date,
+  offset: number = 0
 ): Promise<WeatherForecast[]> {
   try {
     // Проверяем доступность интернета
@@ -66,13 +67,26 @@ export async function getWeatherForecast(
       return [];
     }
 
-    // Всегда загружаем прогноз на 7 дней вперед от текущей даты
-    const tripStartDate = startDate;
-    const extendedEndDate = new Date(endDate);
-    extendedEndDate.setDate(endDate.getDate() + 7);
+    // Рассчитываем начальную и конечную даты для загрузки с учетом offset
+    const requestStartDate = new Date(startDate);
+    requestStartDate.setDate(startDate.getDate() + offset);
+    
+    // Загружаем максимум 7 дней или до конца поездки
+    const requestEndDate = new Date(requestStartDate);
+    requestEndDate.setDate(requestStartDate.getDate() + 6); // 7 дней включительно
+    
+    // Не загружаем данные за пределами поездки
+    if (requestEndDate > endDate) {
+      requestEndDate.setTime(endDate.getTime());
+    }
+    
+    // Если начальная дата уже после окончания поездки, возвращаем пустой массив
+    if (requestStartDate > endDate) {
+      return [];
+    }
 
-    const startDateStr = formatDate(tripStartDate);
-    const endDateStr = formatDate(extendedEndDate);
+    const startDateStr = formatDate(requestStartDate);
+    const endDateStr = formatDate(requestEndDate);
 
     // Формируем URL для запроса к Open-Meteo API
     const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=temperature_2m_max,weathercode&timezone=auto&start_date=${startDateStr}&end_date=${endDateStr}`;
@@ -88,7 +102,7 @@ export async function getWeatherForecast(
     // Проверяем, есть ли данные в ответе
     if (!data.daily || !data.daily.time || !data.daily.temperature_2m_max || !data.daily.weathercode) {
       console.warn('Invalid data format from Open-Meteo API');
-      return getHistoricalWeatherEstimate(lat, lng, tripStartDate, extendedEndDate);
+      return getHistoricalWeatherEstimate(lat, lng, requestStartDate, requestEndDate);
     }
 
     // Преобразуем ответ API в нужный формат
@@ -115,11 +129,42 @@ export async function getWeatherForecast(
   } catch (error) {
     console.error('Error fetching weather forecast:', error);
     // В случае ошибки используем исторические данные
-    const tripStartDate = startDate;
-    const extendedEndDate = new Date(endDate);
-    extendedEndDate.setDate(endDate.getDate() + 7);
-    return getHistoricalWeatherEstimate(lat, lng, tripStartDate, extendedEndDate);
+    const requestStartDate = new Date(startDate);
+    requestStartDate.setDate(startDate.getDate() + offset);
+    const requestEndDate = new Date(requestStartDate);
+    requestEndDate.setDate(requestStartDate.getDate() + 6);
+    if (requestEndDate > endDate) {
+      requestEndDate.setTime(endDate.getTime());
+    }
+    return getHistoricalWeatherEstimate(lat, lng, requestStartDate, requestEndDate);
   }
+}
+
+/**
+ * Получает полный прогноз погоды для поездки с пагинацией
+ */
+export async function getInitialWeatherForecast(
+  lat: number,
+  lng: number,
+  startDate: Date,
+  endDate: Date
+): Promise<WeatherForecast[]> {
+  // Загружаем первые 7 дней
+  return await getWeatherForecast(lat, lng, startDate, endDate, 0);
+}
+
+/**
+ * Загружает следующую порцию прогноза погоды
+ */
+export async function loadMoreWeatherForecast(
+  lat: number,
+  lng: number,
+  startDate: Date,
+  endDate: Date,
+  currentForecast: WeatherForecast[]
+): Promise<WeatherForecast[]> {
+  const offset = currentForecast.length;
+  return await getWeatherForecast(lat, lng, startDate, endDate, offset);
 }
 
 /**

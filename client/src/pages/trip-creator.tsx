@@ -78,7 +78,7 @@ export default function TripCreator() {
   // Wizard state
   const [currentStep, setCurrentStep] = useState<'trip-details' | 'travelers' | 'activities'>('trip-details');
   
-  // Fetch weather forecast when location is set (asynchronously load 7 days)
+  // Fetch weather forecast when location is set (load first 7 days)
   useEffect(() => {
     const fetchWeather = async () => {
       if (formData.location.lat !== 0 && formData.location.lng !== 0) {
@@ -103,12 +103,13 @@ export default function TripCreator() {
               date: new Date(d.date)
             })));
           } else {
-            // Пытаемся получить свежий прогноз на даты поездки + 7 дополнительных дней
-            const forecast = await getWeatherForecast(
+            // Загружаем первые 7 дней прогноза
+            const { getInitialWeatherForecast } = await import('@/lib/weather');
+            const forecast = await getInitialWeatherForecast(
               formData.location.lat,
               formData.location.lng,
-              formData.startDate, // Используем дату начала поездки
-              formData.endDate // Используем дату окончания поездки
+              formData.startDate,
+              formData.endDate
             );
             
             setWeatherForecast(forecast);
@@ -120,7 +121,7 @@ export default function TripCreator() {
                   ...d,
                   date: d.date.toISOString() // Преобразуем дату в строку для хранения
                 }))));
-                console.log('7-day weather forecast cached successfully');
+                console.log('Initial weather forecast cached successfully');
               } catch (cacheError) {
                 console.warn('Failed to cache weather forecast:', cacheError);
               }
@@ -154,6 +155,25 @@ export default function TripCreator() {
     
     return () => clearTimeout(timeoutId);
   }, [formData.location, formData.startDate, formData.endDate]); // Добавляем зависимость от дат
+
+  // Handle weather forecast updates from pagination
+  const handleWeatherForecastUpdate = (newForecast: WeatherForecast[]) => {
+    setWeatherForecast(newForecast);
+    
+    // Update cache with new forecast
+    const today = new Date().toDateString();
+    const tripDatesKey = `${formData.startDate.toDateString()}_${formData.endDate.toDateString()}`;
+    const cacheKey = `weather_trip_${formData.location.lat}_${formData.location.lng}_${tripDatesKey}_${today}`;
+    
+    try {
+      localStorage.setItem(cacheKey, JSON.stringify(newForecast.map(d => ({
+        ...d,
+        date: d.date.toISOString()
+      }))));
+    } catch (cacheError) {
+      console.warn('Failed to update cached weather forecast:', cacheError);
+    }
+  };
   
   // Validate dates
   useEffect(() => {
@@ -325,7 +345,14 @@ export default function TripCreator() {
         {/* Weather Forecast */}
         <div className="mt-6">
           <h2 className="text-center text-lg font-medium mb-3">Weather information</h2>
-          <WeatherForecast forecast={weatherForecast} isLoading={isLoading} />
+          <WeatherForecast 
+            forecast={weatherForecast} 
+            isLoading={isLoading}
+            location={formData.location.lat !== 0 ? formData.location : undefined}
+            tripStartDate={formData.startDate}
+            tripEndDate={formData.endDate}
+            onForecastUpdate={handleWeatherForecastUpdate}
+          />
         </div>
       </div>
       

@@ -1,7 +1,7 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { format } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { isOnline } from '@/lib/weather';
+import { isOnline, loadMoreWeatherForecast } from '@/lib/weather';
 
 interface ForecastDay {
   date: Date;
@@ -13,14 +13,27 @@ interface ForecastDay {
 interface WeatherForecastProps {
   forecast: ForecastDay[];
   isLoading?: boolean;
+  location?: { lat: number; lng: number };
+  tripStartDate?: Date;
+  tripEndDate?: Date;
+  onForecastUpdate?: (newForecast: ForecastDay[]) => void;
 }
 
-const WeatherForecast: React.FC<WeatherForecastProps> = ({ forecast, isLoading = false }) => {
+const WeatherForecast: React.FC<WeatherForecastProps> = ({ 
+  forecast, 
+  isLoading = false,
+  location,
+  tripStartDate,
+  tripEndDate,
+  onForecastUpdate
+}) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMoreDays, setHasMoreDays] = useState(true);
   
   // Проверяем возможность скролла при изменении размера окна или контента
   const checkScrollability = () => {
@@ -30,6 +43,70 @@ const WeatherForecast: React.FC<WeatherForecastProps> = ({ forecast, isLoading =
       setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 5); // 5px - небольшой запас
     }
   };
+
+  // Функция для загрузки следующих 7 дней в фоне
+  const loadMoreDays = useCallback(async () => {
+    if (
+      isLoadingMore || 
+      !hasMoreDays || 
+      !location || 
+      !tripStartDate || 
+      !tripEndDate || 
+      !onForecastUpdate
+    ) {
+      return;
+    }
+
+    // Проверяем, есть ли еще дни для загрузки
+    if (forecast.length > 0) {
+      const lastDate = forecast[forecast.length - 1].date;
+      const nextDay = new Date(lastDate);
+      nextDay.setDate(lastDate.getDate() + 1);
+      
+      if (nextDay > tripEndDate) {
+        setHasMoreDays(false);
+        return;
+      }
+    }
+
+    setIsLoadingMore(true);
+    
+    try {
+      const moreForecast = await loadMoreWeatherForecast(
+        location.lat,
+        location.lng,
+        tripStartDate,
+        tripEndDate,
+        forecast
+      );
+      
+      if (moreForecast.length > 0) {
+        const updatedForecast = [...forecast, ...moreForecast];
+        onForecastUpdate(updatedForecast);
+      } else {
+        setHasMoreDays(false);
+      }
+    } catch (error) {
+      console.error('Failed to load more weather forecast:', error);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [isLoadingMore, hasMoreDays, location, tripStartDate, tripEndDate, forecast, onForecastUpdate]);
+
+  // Проверяем нужность загрузки при скролле
+  const handleScroll = useCallback(() => {
+    checkScrollability();
+    
+    if (scrollContainerRef.current && hasMoreDays && !isLoadingMore) {
+      const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
+      const scrollPercentage = (scrollLeft + clientWidth) / scrollWidth;
+      
+      // Загружаем следующие дни когда доскроллили до 70%
+      if (scrollPercentage > 0.7) {
+        loadMoreDays();
+      }
+    }
+  }, [hasMoreDays, isLoadingMore, loadMoreDays]);
   
   // Проверяем возможность скролла при монтировании и изменении прогноза
   useEffect(() => {
@@ -38,17 +115,27 @@ const WeatherForecast: React.FC<WeatherForecastProps> = ({ forecast, isLoading =
     // Добавляем обработчик события прокрутки
     const scrollContainer = scrollContainerRef.current;
     if (scrollContainer) {
-      scrollContainer.addEventListener('scroll', checkScrollability);
+      scrollContainer.addEventListener('scroll', handleScroll);
       window.addEventListener('resize', checkScrollability);
     }
     
     return () => {
       if (scrollContainer) {
-        scrollContainer.removeEventListener('scroll', checkScrollability);
+        scrollContainer.removeEventListener('scroll', handleScroll);
         window.removeEventListener('resize', checkScrollability);
       }
     };
-  }, [forecast]);
+  }, [forecast, handleScroll]);
+
+  // Проверяем, есть ли еще дни для загрузки при изменении дат поездки
+  useEffect(() => {
+    if (tripStartDate && tripEndDate && forecast.length > 0) {
+      const lastDate = forecast[forecast.length - 1].date;
+      const nextDay = new Date(lastDate);
+      nextDay.setDate(lastDate.getDate() + 1);
+      setHasMoreDays(nextDay <= tripEndDate);
+    }
+  }, [tripStartDate, tripEndDate, forecast]);
   
   // Обработчик начала касания
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -176,6 +263,13 @@ const WeatherForecast: React.FC<WeatherForecastProps> = ({ forecast, isLoading =
             </div>
           </div>
         ))}
+        
+        {/* Индикатор загрузки следующих дней */}
+        {isLoadingMore && (
+          <div className="min-w-[100px] border border-gray-200 rounded-md p-2 flex-shrink-0 flex items-center justify-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+          </div>
+        )}
       </div>
     </div>
   );
