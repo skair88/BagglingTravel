@@ -1,9 +1,7 @@
 import React, { useState } from 'react';
-import { Button } from "@/components/ui/button";
-import { ChevronLeft, Plus, Minus } from "lucide-react";
+import { TripButton } from "@/components/ui/trip-button";
 import { cn } from '@/lib/utils';
 import Header from '@/components/layout/header';
-import ProgressBar from '@/components/trips/progress-bar';
 import BottomNav from '@/components/layout/bottom-nav';
 import MobileNumberPicker from '@/components/ui/mobile-number-picker';
 
@@ -136,7 +134,7 @@ const TravelersSelector: React.FC<TravelersSelectorProps> = ({
             <div className="w-6 h-6 rounded-full flex items-center justify-center bg-gray-200 mr-2">
               <span className="text-gray-700 text-sm">👤</span>
             </div>
-            <span className="text-lg font-medium">Adult</span>
+            <span className="text-lg font-medium">Adults</span>
           </div>
 
           {travelers
@@ -256,18 +254,18 @@ const TravelersSelector: React.FC<TravelersSelectorProps> = ({
 
       {/* Кнопка "Далее" */}
       <div className="fixed bottom-16 left-0 right-0 px-6 py-2 bg-gray-50 pb-4">
-        <Button
+        <TripButton
           onClick={handleNext}
           className={cn(
-            "w-full py-3 text-base font-medium rounded-xl",
+            "w-full py-2 text-base",
             hasTravelers 
-              ? "bg-amber-500 hover:bg-amber-600 text-white" 
+              ? "bg-gray-50 text-gray-500 border border-gray-500" 
               : "bg-gray-200 text-gray-400 cursor-not-allowed"
           )}
           disabled={!hasTravelers}
         >
           Next
-        </Button>
+        </TripButton>
         {!hasTravelers && (
           <p className="text-center text-sm text-red-500 mt-2">
             Please select at least one traveler

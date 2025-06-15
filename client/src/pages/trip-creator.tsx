@@ -372,32 +372,6 @@ export default function TripCreator() {
     </div>
   );
 
-  // Рендер экрана выбора путешественников
-  const renderTravelersSelector = () => (
-    <div className="flex-1 flex flex-col">
-      <TravelersSelector 
-        onBack={handleGoBack}
-        onNext={handleGoToActivities}
-        onSaveTravelers={handleSaveTravelers}
-        initialTravelers={formData.travelers}
-      />
-    </div>
-  );
-
-  // Рендер экрана выбора активностей
-  const renderActivitiesSelector = () => (
-    <div className="flex-1 flex flex-col">
-      <ActivitiesSelector 
-        onBack={handleGoBack}
-        onSaveActivities={(activities) => {
-          handleSaveActivities(activities);
-          handleSaveTrip();
-        }}
-        initialActivities={formData.activities}
-      />
-    </div>
-  );
-
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       {currentStep === 'trip-details' ? (

@@ -23,7 +23,7 @@ const MobileNumberPicker: React.FC<MobileNumberPickerProps> = ({
 }) => {
   const [selectedValue, setSelectedValue] = useState(value);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const itemHeight = 48; // высота каждого элемента в пикселях
+  const itemHeight = 48; // высота каждого элемента в пикселях  
   
   // Создаем массив чисел от min до max
   const numbers = Array.from({ length: max - min + 1 }, (_, i) => min + i);
@@ -86,12 +86,6 @@ const MobileNumberPicker: React.FC<MobileNumberPickerProps> = ({
         
         {/* Picker Container */}
         <div className="relative h-48 overflow-hidden">
-          {/* Selected item indicator */}
-          <div 
-            className="absolute left-0 right-0 h-12 bg-amber-100 border-y-2 border-amber-400 pointer-events-none z-10 rounded-lg mx-4"
-            style={{ top: '50%', transform: 'translateY(-50%)' }}
-          />
-          
           {/* Scrollable numbers */}
           <div
             ref={scrollRef}
@@ -103,6 +97,11 @@ const MobileNumberPicker: React.FC<MobileNumberPickerProps> = ({
               paddingBottom: '96px'
             }}
           >
+            {/* Selected item indicator */}
+            <div 
+              className="absolute left-0 right-0 h-12 bg-amber-100 bg-opacity-60 border-y-2 border-amber-400 pointer-events-none z-10 rounded-lg mx-4"
+              style={{ top: '65%', transform: 'translateY(0)' }}
+            />
             {numbers.map((number) => (
               <div
                 key={number}
