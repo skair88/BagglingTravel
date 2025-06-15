@@ -1,3 +1,4 @@
+
 import React from 'react';
 
 interface ProgressBarProps {
@@ -6,15 +7,16 @@ interface ProgressBarProps {
 }
 
 const ProgressBar: React.FC<ProgressBarProps> = ({ currentStep, totalSteps }) => {
-  // Calculate progress percentage
-  const progress = (currentStep / totalSteps) * 100;
-  
   return (
-    <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
-      <div 
-        className="h-full bg-amber-500 transition-all duration-300 ease-in-out"
-        style={{ width: `${progress}%` }}
-      />
+    <div className="flex space-x-2">
+      {Array.from({ length: totalSteps }, (_, index) => (
+        <div
+          key={index}
+          className={`flex-1 h-2 rounded-full transition-all duration-300 ease-in-out ${
+            index < currentStep ? 'bg-amber-500' : 'bg-gray-200'
+          }`}
+        />
+      ))}
     </div>
   );
 };

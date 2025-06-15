@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
+import { Plus, Minus } from 'lucide-react';
 import { TripButton } from "@/components/ui/trip-button";
 import { cn } from '@/lib/utils';
 import Header from '@/components/layout/header';
 import BottomNav from '@/components/layout/bottom-nav';
 import MobileNumberPicker from '@/components/ui/mobile-number-picker';
+import ProgressBar from '@/components/trips/progress-bar';
 
 interface TravelerType {
   id: string;
@@ -114,12 +116,8 @@ const TravelersSelector: React.FC<TravelersSelectorProps> = ({
       />
 
       {/* Прогрессбар */}
-      <div className="px-6 py-4">
-        <div className="flex space-x-2">
-          <div className="flex-1 h-2 bg-amber-500 rounded-full"></div>
-          <div className="flex-1 h-2 bg-amber-500 rounded-full"></div>
-          <div className="flex-1 h-2 bg-gray-200 rounded-full"></div>
-        </div>
+      <div className="px-4 mt-4">
+        <ProgressBar currentStep={2} totalSteps={3} />
       </div>
 
       {/* Заголовок */}
