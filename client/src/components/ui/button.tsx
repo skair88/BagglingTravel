@@ -18,6 +18,15 @@ const buttonVariants = cva(
           "bg-secondary text-secondary-foreground hover:bg-secondary/80",
         ghost: "hover:bg-accent hover:text-accent-foreground",
         link: "text-primary underline-offset-4 hover:underline",
+        trip: [
+          // Light theme states
+          "bg-gray-100 text-gray-700 border border-gray-200 hover:bg-gray-200 hover:text-gray-800",
+          // Dark theme states  
+          "dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700 dark:hover:bg-gray-700 dark:hover:text-gray-200",
+          // Pressed states
+          "data-[pressed=true]:bg-gray-300 data-[pressed=true]:text-gray-900 data-[pressed=true]:border-gray-400 data-[pressed=true]:shadow-inner",
+          "dark:data-[pressed=true]:bg-gray-600 dark:data-[pressed=true]:text-white dark:data-[pressed=true]:border-gray-500"
+        ],
       },
       size: {
         default: "h-10 px-4 py-2",
@@ -37,14 +46,16 @@ export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof buttonVariants> {
   asChild?: boolean
+  pressed?: boolean
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, ...props }, ref) => {
+  ({ className, variant, size, asChild = false, pressed = false, ...props }, ref) => {
     const Comp = asChild ? Slot : "button"
     return (
       <Comp
         className={cn(buttonVariants({ variant, size, className }))}
+        data-pressed={pressed}
         ref={ref}
         {...props}
       />
