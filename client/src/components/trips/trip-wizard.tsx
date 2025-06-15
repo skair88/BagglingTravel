@@ -60,10 +60,11 @@ const TripWizard: React.FC<TripWizardProps> = ({ onComplete }) => {
     const locationDataArray = await mapbox.searchLocations(searchQuery);
       if (locationDataArray && locationDataArray.length > 0) {
         const locationData = locationDataArray[0]; 
+        const coordinates = await mapbox.getCoordinates(locationData.name);
         setTripData(prev => ({
           ...prev,
-          destination: locationData.place_name, 
-          location: { lat: locationData.lat, lng: locationData.lng }
+          destination: locationData.name, 
+          location: { lat: coordinates., lng: locationData.lng }
         }));
       }
     } catch (error) {

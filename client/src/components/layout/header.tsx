@@ -24,7 +24,7 @@ const Header: React.FC<HeaderProps> = ({
   };
 
   return (
-    <header className="w-full p-4 bg-gray-100 border-b border-gray-200">
+    <header className="w-full p-4 bg-gray-50 border-b border-gray-500">
       <div className="flex items-center justify-between">
         <div className="w-10">
           {showBackButton && (
