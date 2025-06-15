@@ -58,8 +58,8 @@ const defaultTravelers: TravelerType[] = [
 const defaultTripData: TripWizardData = {
   destination: '',
   location: { lat: 0, lng: 0 },
-  startDate: new Date(),
-  endDate: new Date(new Date().setDate(new Date().getDate() + 7)),
+  startDate: new Date(new Date().setDate(new Date().getDate() + 7)),
+  endDate: new Date(new Date().setDate(new Date().getDate() + 14)),
   purpose: 'vacation', // Default purpose
   activities: [],
   travelers: defaultTravelers
@@ -255,9 +255,9 @@ export default function TripCreator() {
   
   // Рендер экрана с деталями поездки
   const renderTripDetails = () => (
-    <div className="flex flex-col h-screen bg-gray-50">
+    <div className="flex flex-col bg-gray-50">
       {/* Scrollable content */}
-      <div className="flex-1 overflow-y-auto p-4 pb-32">
+      <div className="flex-1 overflow-y-auto p-4 pb-16">
         <ProgressBar currentStep={1} totalSteps={2} />
         
         <div className="mt-6">
@@ -330,7 +330,7 @@ export default function TripCreator() {
       </div>
       
       {/* Fixed Next Button */}
-      <div className="fixed bottom-16 left-0 right-0 px-6 py-4 bg-gray-50">
+      <div className="fixed bottom-16 left-0 right-0 px-6 py-2 bg-gray-50 pb-4">
         <TripButton 
           className="w-full py-2 text-base"
           onClick={handleGoToTravelers}

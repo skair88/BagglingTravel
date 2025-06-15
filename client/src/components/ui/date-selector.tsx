@@ -79,19 +79,19 @@ const DateSelector: React.FC<DateSelectorProps> = ({
   // Прокручиваем колеса до выбранной даты при открытии
   useEffect(() => {
     if (isOpen && dayRef.current && monthRef.current && yearRef.current) {
-      // Устанавливаем скролл для дня
+      // Центрируем скролл для дня
       const dayIndex = days.indexOf(selectedDay);
       if (dayIndex !== -1) {
-        dayRef.current.scrollTop = dayIndex * 40 + 70;
+        dayRef.current.scrollTop = dayIndex * 40;
       }
       
-      // Устанавливаем скролл для месяца
-      monthRef.current.scrollTop = selectedMonth * 40 + 70;
+      // Центрируем скролл для месяца
+      monthRef.current.scrollTop = selectedMonth * 40;
       
-      // Устанавливаем скролл для года
+      // Центрируем скролл для года
       const yearIndex = years.indexOf(selectedYear);
       if (yearIndex !== -1) {
-        yearRef.current.scrollTop = yearIndex * 40 + 70;
+        yearRef.current.scrollTop = yearIndex * 40;
       }
     }
   }, [isOpen, selectedDay, selectedMonth, selectedYear, days, years]);
@@ -175,7 +175,7 @@ const DateSelector: React.FC<DateSelectorProps> = ({
                     className="h-full overflow-auto scrollbar-none"
                     onScroll={() => {
                       if (dayRef.current) {
-                        const index = Math.round((dayRef.current.scrollTop - 70) / 40);
+                        const index = Math.round(dayRef.current.scrollTop / 40);
                         if (index >= 0 && index < days.length) {
                           setSelectedDay(days[index]);
                         }
@@ -207,7 +207,7 @@ const DateSelector: React.FC<DateSelectorProps> = ({
                     className="h-full overflow-auto scrollbar-none"
                     onScroll={() => {
                       if (monthRef.current) {
-                        const index = Math.round((monthRef.current.scrollTop - 70) / 40);
+                        const index = Math.round(monthRef.current.scrollTop / 40);
                         if (index >= 0 && index < monthNames.length) {
                           setSelectedMonth(index);
                         }
@@ -239,7 +239,7 @@ const DateSelector: React.FC<DateSelectorProps> = ({
                     className="h-full overflow-auto scrollbar-none"
                     onScroll={() => {
                       if (yearRef.current) {
-                        const index = Math.round((yearRef.current.scrollTop - 70) / 40);
+                        const index = Math.round(yearRef.current.scrollTop / 40);
                         if (index >= 0 && index < years.length) {
                           setSelectedYear(years[index]);
                         }
