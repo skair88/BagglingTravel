@@ -5,7 +5,6 @@ import Header from '@/components/layout/header';
 import ProgressBar from '@/components/trips/progress-bar';
 import LocationSearch from '@/components/trips/location-search';
 import WeatherForecast from '@/components/trips/weather-forecast';
-import { getWeatherForecast } from '@/lib/weather';
 import { useTrips } from '@/hooks/use-trips';
 import DateSelector from '@/components/ui/date-selector';
 import BottomNav from '@/components/layout/bottom-nav';
