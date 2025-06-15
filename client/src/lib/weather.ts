@@ -51,7 +51,7 @@ export function isOnline(): boolean {
 }
 
 /**
- * Получает прогноз погоды от Open-Meteo API
+ * Получает прогноз погоды от Open-Meteo API для 7 дней
  */
 export async function getWeatherForecast(
   lat: number,
@@ -66,9 +66,13 @@ export async function getWeatherForecast(
       return [];
     }
     
-    // Форматируем даты для API
-    const startDateStr = formatDate(startDate);
-    const endDateStr = formatDate(endDate);
+    // Всегда загружаем прогноз на 7 дней вперед от текущей даты
+    const today = new Date();
+    const sevenDaysLater = new Date(today);
+    sevenDaysLater.setDate(today.getDate() + 6);
+    
+    const startDateStr = formatDate(today);
+    const endDateStr = formatDate(sevenDaysLater);
     
     // Формируем URL для запроса к Open-Meteo API
     const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=temperature_2m_max,weathercode&timezone=auto&start_date=${startDateStr}&end_date=${endDateStr}`;
@@ -84,7 +88,7 @@ export async function getWeatherForecast(
     // Проверяем, есть ли данные в ответе
     if (!data.daily || !data.daily.time || !data.daily.temperature_2m_max || !data.daily.weathercode) {
       console.warn('Invalid data format from Open-Meteo API');
-      return getHistoricalWeatherEstimate(lat, lng, startDate, endDate);
+      return getHistoricalWeatherEstimate(lat, lng, today, sevenDaysLater);
     }
     
     // Преобразуем ответ API в нужный формат
@@ -111,7 +115,10 @@ export async function getWeatherForecast(
   } catch (error) {
     console.error('Error fetching weather forecast:', error);
     // В случае ошибки используем исторические данные
-    return getHistoricalWeatherEstimate(lat, lng, startDate, endDate);
+    const today = new Date();
+    const sevenDaysLater = new Date(today);
+    sevenDaysLater.setDate(today.getDate() + 6);
+    return getHistoricalWeatherEstimate(lat, lng, today, sevenDaysLater);
   }
 }
 

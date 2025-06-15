@@ -78,21 +78,17 @@ export default function TripCreator() {
   // Wizard state
   const [currentStep, setCurrentStep] = useState<'trip-details' | 'travelers' | 'activities'>('trip-details');
   
-  // Fetch weather forecast when location and dates are set
+  // Fetch weather forecast when location is set (asynchronously load 7 days)
   useEffect(() => {
     const fetchWeather = async () => {
-      if (
-        formData.location.lat !== 0 &&
-        formData.location.lng !== 0 &&
-        formData.startDate &&
-        formData.endDate
-      ) {
+      if (formData.location.lat !== 0 && formData.location.lng !== 0) {
         setIsLoading(true);
         
-        // Создаем ключ для кэширования прогноза погоды
-        const cacheKey = `weather_${formData.location.lat}_${formData.location.lng}_${formData.startDate.getTime()}_${formData.endDate.getTime()}`;
+        // Создаем ключ для кэширования прогноза погоды (только по координатам)
+        const today = new Date().toDateString();
+        const cacheKey = `weather_7days_${formData.location.lat}_${formData.location.lng}_${today}`;
         
-        // Проверяем наличие кэшированных данных
+        // Проверяем наличие кэшированных данных за сегодня
         const cachedData = localStorage.getItem(cacheKey);
         
         try {
@@ -106,12 +102,12 @@ export default function TripCreator() {
               date: new Date(d.date)
             })));
           } else {
-            // Пытаемся получить свежий прогноз
+            // Пытаемся получить свежий прогноз на 7 дней
             const forecast = await getWeatherForecast(
               formData.location.lat,
               formData.location.lng,
-              formData.startDate,
-              formData.endDate
+              new Date(), // Используем текущую дату
+              new Date(Date.now() + 6 * 24 * 60 * 60 * 1000) // +6 дней
             );
             
             setWeatherForecast(forecast);
@@ -123,7 +119,7 @@ export default function TripCreator() {
                   ...d,
                   date: d.date.toISOString() // Преобразуем дату в строку для хранения
                 }))));
-                console.log('Weather forecast cached successfully');
+                console.log('7-day weather forecast cached successfully');
               } catch (cacheError) {
                 console.warn('Failed to cache weather forecast:', cacheError);
               }
@@ -152,8 +148,11 @@ export default function TripCreator() {
       }
     };
     
-    fetchWeather();
-  }, [formData.location, formData.startDate, formData.endDate]);
+    // Асинхронно загружаем погоду через небольшую задержку
+    const timeoutId = setTimeout(fetchWeather, 300);
+    
+    return () => clearTimeout(timeoutId);
+  }, [formData.location]); // Убираем зависимость от дат
   
   // Validate dates
   useEffect(() => {

@@ -19,6 +19,8 @@ const WeatherForecast: React.FC<WeatherForecastProps> = ({ forecast, isLoading =
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
   
   // Проверяем возможность скролла при изменении размера окна или контента
   const checkScrollability = () => {
@@ -47,6 +49,33 @@ const WeatherForecast: React.FC<WeatherForecastProps> = ({ forecast, isLoading =
       }
     };
   }, [forecast]);
+  
+  // Обработчик начала касания
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+  
+  // Обработчик движения касания
+  const handleTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+  
+  // Обработчик окончания касания (свайп)
+  const handleTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > 50;
+    const isRightSwipe = distance < -50;
+    
+    if (isLeftSwipe && canScrollRight) {
+      scrollRight();
+    }
+    if (isRightSwipe && canScrollLeft) {
+      scrollLeft();
+    }
+  };
   
   // Прокручиваем влево
   const scrollLeft = () => {
@@ -114,6 +143,9 @@ const WeatherForecast: React.FC<WeatherForecastProps> = ({ forecast, isLoading =
       <div 
         ref={scrollContainerRef}
         className="flex space-x-3 overflow-x-auto pb-2 scrollbar-hide"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
       >
         {forecast.map((day, index) => (
           <div 
@@ -129,11 +161,14 @@ const WeatherForecast: React.FC<WeatherForecastProps> = ({ forecast, isLoading =
             </div>
             
             <div className="flex justify-center my-1">
-              <img 
-                src={`https://openweathermap.org/img/wn/${day.icon}.png`} 
-                alt={day.condition}
-                className="w-12 h-12"
-              />
+              <div className="relative w-12 h-12 bg-gradient-to-br from-blue-50 to-blue-100 rounded-full flex items-center justify-center border border-blue-200 shadow-sm">
+                <img 
+                  src={`https://openweathermap.org/img/wn/${day.icon}.png`} 
+                  alt={day.condition}
+                  className="w-10 h-10 drop-shadow-sm"
+                  style={{ filter: 'contrast(1.2) saturate(1.3) brightness(1.1)' }}
+                />
+              </div>
             </div>
             
             <div className="text-center text-xs text-gray-500">
