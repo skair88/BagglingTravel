@@ -30,12 +30,6 @@ const EmptyState: React.FC<EmptyStateProps> = ({ onAddClick }) => {
         You don't have any trips planned yet...
       </h3>
       
-      <Button 
-        onClick={handleAddClick}
-        className="bg-orange-400 hover:bg-orange-500 text-white px-8 py-3 text-base font-medium"
-      >
-        Add your first trip
-      </Button>
     </div>
   );
 };

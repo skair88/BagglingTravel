@@ -33,7 +33,7 @@ const Header: React.FC<HeaderProps> = ({
               className="text-gray-600 hover:text-gray-900 p-1"
               aria-label="Go back"
             >
-              <ChevronLeft size={20} />
+              <ChevronLeft size={30} />
             </button>
           )}
         </div>

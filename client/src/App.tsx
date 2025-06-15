@@ -1,7 +1,6 @@
 import { Router, Route } from "wouter";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import Settings from "@/pages/settings";
 import TripCreator from "@/pages/trip-creator";
@@ -43,7 +42,6 @@ function App() {
           <Route path="/trip/:id/packing" component={PackingList} />
           <Route path="/trip/:tripId/items" component={PackingItems} />
           <Route path="/settings" component={Settings} />
-          <Route component={NotFound} />
         </Router>
       </div>
     </TooltipProvider>

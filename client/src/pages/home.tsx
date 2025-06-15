@@ -59,19 +59,21 @@ export default function Home() {
             />
           ))}
         </div>
-        
-        {/* Add trip button when there are existing trips */}
-        <div className="px-0 pb-4">
-          <TripButton 
-            onClick={handleAddTrip}
-            className="w-full py-3 text-base"
-          >
-            Add one more trip
-          </TripButton>
-        </div>
       </div>
     );
   };
+
+  // Always available Add Trip Button
+  const renderAddTripButton = () => (
+    <div className="px-6 pb-6 flex-grow items-end flex">
+      <TripButton 
+        onClick={handleAddTrip}
+        className="w-full py-2 text-base"
+      >
+        Add one more trip
+      </TripButton>
+    </div>
+  );
   
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
@@ -79,6 +81,7 @@ export default function Home() {
       
       <main className="flex-1 flex flex-col mb-14">
         {renderContent()}
+        {renderAddTripButton()}
       </main>
 
       
