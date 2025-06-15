@@ -330,9 +330,9 @@ export default function TripCreator() {
       </div>
       
       {/* Fixed Next Button */}
-      <div className="fixed bottom-16 left-0 right-0 px-6 py-4 bg-gray-50 border-t border-gray-200">
+      <div className="fixed bottom-16 left-0 right-0 px-6 py-4 bg-gray-50">
         <TripButton 
-          className="w-full py-3 text-base"
+          className="w-full py-2 text-base"
           onClick={handleGoToTravelers}
           disabled={!formData.destination || isDateError || isLoading}
         >
