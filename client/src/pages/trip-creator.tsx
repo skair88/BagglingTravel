@@ -278,9 +278,9 @@ export default function TripCreator() {
       {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto p-4 pb-16">
         <div className="flex space-x-2">
-          <div className={`flex-1 h-2 rounded-full ${currentStep >= 1 ? 'bg-amber-500' : 'bg-gray-200'}`}></div>
-          <div className={`flex-1 h-2 rounded-full ${currentStep >= 2 ? 'bg-gray-200' : 'bg-gray-200'}`}></div>
-          <div className={`flex-1 h-2 rounded-full ${currentStep >= 3 ? 'bg-gray-200' : 'bg-gray-200'}`}></div>
+          <div className={`flex-1 h-2 rounded-full ${currentStep === 'trip-details' ? 'bg-amber-500' : 'bg-gray-200'}`}></div>
+          <div className={`flex-1 h-2 rounded-full ${currentStep === 'travelers' ? 'bg-amber-500' : 'bg-gray-200'}`}></div>
+          <div className={`flex-1 h-2 rounded-full ${currentStep === 'activities' ? 'bg-amber-500' : 'bg-gray-200'}`}></div>
         </div>
 
         <div className="mt-6">
