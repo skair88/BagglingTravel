@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { navigate } from 'wouter/use-browser-location';
 import { Trip } from '@shared/schema';
-import { Button } from '@/components/ui/button';
+import { TripButton } from '@/components/ui/trip-button';
 import Header from '@/components/layout/header';
 import BottomNav from '@/components/layout/bottom-nav';
 import TripCard from '@/components/trips/trip-card';
@@ -59,6 +59,16 @@ export default function Home() {
             />
           ))}
         </div>
+        
+        {/* Add trip button when there are existing trips */}
+        <div className="px-0 pb-4">
+          <TripButton 
+            onClick={handleAddTrip}
+            className="w-full py-3 text-base"
+          >
+            Add one more trip
+          </TripButton>
+        </div>
       </div>
     );
   };
@@ -70,19 +80,7 @@ export default function Home() {
       <main className="flex-1 flex flex-col mb-14">
         {renderContent()}
       </main>
-      
-      {/* Add trip button */}
-      {sortedTrips.length > 0 ? (
-        <div className="px-4 pb-20">
-          <Button 
-            onClick={handleAddTrip}
-            className="w-full py-10 text-lg"
-            variant="outline"
-          >
-            Add one more trip
-          </Button>
-        </div>
-      ) : null}
+
       
       <BottomNav />
     </div>

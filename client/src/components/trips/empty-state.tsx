@@ -1,5 +1,6 @@
 import React from 'react';
 import { navigate } from 'wouter/use-browser-location';
+import { Button } from '@/components/ui/button';
 
 interface EmptyStateProps {
   onAddClick?: () => void;
@@ -25,9 +26,16 @@ const EmptyState: React.FC<EmptyStateProps> = ({ onAddClick }) => {
         />
       </div>
 
-      <h3 className="text-xl text-gray-500 font-medium mb-4">
+      <h3 className="text-xl text-gray-500 font-medium mb-6">
         You don't have any trips planned yet...
       </h3>
+      
+      <Button 
+        onClick={handleAddClick}
+        className="bg-orange-400 hover:bg-orange-500 text-white px-8 py-3 text-base font-medium"
+      >
+        Add your first trip
+      </Button>
     </div>
   );
 };

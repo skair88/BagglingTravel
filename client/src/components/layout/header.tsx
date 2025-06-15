@@ -38,12 +38,9 @@ const Header: React.FC<HeaderProps> = ({
           )}
         </div>
         
-        <div className="flex-1 flex justify-end pr-2">
-          <h1 className="text-xl font-bold text-gray-900">{title}</h1>
-        </div>
-        
-        <div className="w-10 flex justify-end">
-          {rightAction && rightAction}
+        <div className="w-30 flex justify-end">
+          {/* Static .png image added here */}
+          <img src="/static/images/title.png" alt="Static Icon" className="h-8 w-30" />
         </div>
       </div>
     </header>

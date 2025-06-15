@@ -4,13 +4,13 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const tripButtonVariants = cva(
-  "w-full py-4 px-6 text-lg font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+  "w-full py-2 px-6 text-xl font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
   {
     variants: {
       variant: {
         default: [
           // Light theme - unpressed (state 1)
-          "bg-gray-100 text-gray-700 border border-gray-200",
+          "bg-gray-50 text-gray-500 border border-gray-500",
           "hover:bg-gray-200 hover:text-gray-800",
           // Dark theme - unpressed (state 4)
           "dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700",
