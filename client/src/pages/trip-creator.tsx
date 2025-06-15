@@ -255,81 +255,84 @@ export default function TripCreator() {
   
   // Рендер экрана с деталями поездки
   const renderTripDetails = () => (
-    <div className="p-4 flex-1 flex flex-col min-h-screen bg-gray-50">
-      <ProgressBar currentStep={1} totalSteps={2} />
-      
-      <div className="mt-6">
-        <h2 className="text-center text-lg font-medium mb-3">Direction</h2>
-        <LocationSearch
-          value={locationInput}
-          onChange={setLocationInput}
-          onLocationSelect={handleLocationSelect}
-        />
-      </div>
-      
-      <div className="mt-6">
-        <h2 className="text-center text-lg font-medium mb-3">Dates</h2>
+    <div className="flex flex-col h-screen bg-gray-50">
+      {/* Scrollable content */}
+      <div className="flex-1 overflow-y-auto p-4 pb-32">
+        <ProgressBar currentStep={1} totalSteps={2} />
         
-        <div className="grid grid-cols-2 gap-4">
-          {/* Start Date */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">From</label>
-            <DateSelector
-              selected={formData.startDate}
-              onSelect={(date) => {
-                // When from date changes, set both dates in same month
-                const newEndDate = new Date(formData.endDate);
-                newEndDate.setFullYear(date.getFullYear());
-                newEndDate.setMonth(date.getMonth());
-                
-                // If end date becomes before start date, adjust it
-                if (newEndDate < date) {
-                  newEndDate.setDate(date.getDate() + 7);
-                }
-                
-                setFormData({
-                  ...formData,
-                  startDate: date,
-                  endDate: newEndDate
-                });
-              }}
-              className={isDateError ? 'border-red-500' : ''}
-              placeholder="Pick a date"
-            />
-          </div>
-          
-          {/* End Date */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">To</label>
-            <DateSelector
-              selected={formData.endDate}
-              onSelect={(date) => {
-                setFormData({ ...formData, endDate: date });
-              }}
-              minDate={formData.startDate} // Prevent dates before start date
-              className={isDateError ? 'border-red-500' : ''}
-              placeholder="Pick a date"
-            />
-          </div>
+        <div className="mt-6">
+          <h2 className="text-center text-lg font-medium mb-3">Direction</h2>
+          <LocationSearch
+            value={locationInput}
+            onChange={setLocationInput}
+            onLocationSelect={handleLocationSelect}
+          />
         </div>
         
-        {isDateError && (
-          <p className="text-sm text-red-500 mt-1">
-            End date must be after or equal to start date
-          </p>
-        )}
+        <div className="mt-6">
+          <h2 className="text-center text-lg font-medium mb-3">Dates</h2>
+          
+          <div className="grid grid-cols-2 gap-4">
+            {/* Start Date */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">From</label>
+              <DateSelector
+                selected={formData.startDate}
+                onSelect={(date) => {
+                  // When from date changes, set both dates in same month
+                  const newEndDate = new Date(formData.endDate);
+                  newEndDate.setFullYear(date.getFullYear());
+                  newEndDate.setMonth(date.getMonth());
+                  
+                  // If end date becomes before start date, adjust it
+                  if (newEndDate < date) {
+                    newEndDate.setDate(date.getDate() + 7);
+                  }
+                  
+                  setFormData({
+                    ...formData,
+                    startDate: date,
+                    endDate: newEndDate
+                  });
+                }}
+                className={isDateError ? 'border-red-500' : ''}
+                placeholder="Pick a date"
+              />
+            </div>
+            
+            {/* End Date */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">To</label>
+              <DateSelector
+                selected={formData.endDate}
+                onSelect={(date) => {
+                  setFormData({ ...formData, endDate: date });
+                }}
+                minDate={formData.startDate} // Prevent dates before start date
+                className={isDateError ? 'border-red-500' : ''}
+                placeholder="Pick a date"
+              />
+            </div>
+          </div>
+          
+          {isDateError && (
+            <p className="text-sm text-red-500 mt-1">
+              End date must be after or equal to start date
+            </p>
+          )}
+        </div>
+        
+        {/* Weather Forecast */}
+        <div className="mt-6">
+          <h2 className="text-center text-lg font-medium mb-3">Weather information</h2>
+          <WeatherForecast forecast={weatherForecast} isLoading={isLoading} />
+        </div>
       </div>
       
-      {/* Weather Forecast */}
-      <div className="mt-6">
-        <h2 className="text-center text-lg font-medium mb-3">Weather information</h2>
-        <WeatherForecast forecast={weatherForecast} isLoading={isLoading} />
-      </div>
-      
-      {/* Next Button */}
-      <div className="px-6 py-6 items-center justify-center flex mt-8">
+      {/* Fixed Next Button */}
+      <div className="fixed bottom-16 left-0 right-0 px-6 py-4 bg-gray-50 border-t border-gray-200">
         <TripButton 
-          className="w-full py-2 text-base"
+          className="w-full py-3 text-base"
           onClick={handleGoToTravelers}
           disabled={!formData.destination || isDateError || isLoading}
         >
