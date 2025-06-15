@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils';
 import Header from '@/components/layout/header';
 import ProgressBar from '@/components/trips/progress-bar';
 import BottomNav from '@/components/layout/bottom-nav';
+import MobileNumberPicker from '@/components/ui/mobile-number-picker';
 
 interface TravelerType {
   id: string;
@@ -43,6 +44,8 @@ const TravelersSelector: React.FC<TravelersSelectorProps> = ({
   const [travelers, setTravelers] = useState<TravelerType[]>(
     initialTravelers || defaultTravelers
   );
+  const [pickerOpen, setPickerOpen] = useState<string | null>(null);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
   // Обновление количества путешественников определенного типа
   const updateTravelerCount = (id: string, change: number) => {
@@ -53,6 +56,33 @@ const TravelersSelector: React.FC<TravelersSelectorProps> = ({
       }
       return traveler;
     }));
+  };
+
+  // Прямое обновление количества (для picker)
+  const setTravelerCount = (id: string, count: number) => {
+    setTravelers(prev => prev.map(traveler => {
+      if (traveler.id === id) {
+        return { ...traveler, count: Math.max(0, count) };
+      }
+      return traveler;
+    }));
+  };
+
+  // Обработчик клика по количеству
+  const handleCountClick = (id: string) => {
+    if (isMobile) {
+      setPickerOpen(id);
+    }
+  };
+
+  // Обработчик изменения в picker
+  const handlePickerChange = (id: string, value: number) => {
+    setTravelerCount(id, value);
+  };
+
+  // Получение текущего путешественника для picker
+  const getCurrentTraveler = () => {
+    return travelers.find(t => t.id === pickerOpen);
   };
 
   // Проверка, выбран ли хотя бы один путешественник
@@ -110,27 +140,36 @@ const TravelersSelector: React.FC<TravelersSelectorProps> = ({
                   )}></div>
                   <span className="text-base">{traveler.label}</span>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <button 
-                    onClick={() => updateTravelerCount(traveler.id, 1)}
-                    className="w-8 h-8 rounded-full flex items-center justify-center text-gray-700 hover:bg-gray-100"
+                {isMobile ? (
+                  <div 
+                    className="px-4 py-2 bg-gray-100 rounded-lg cursor-pointer min-w-12 text-center"
+                    onClick={() => handleCountClick(traveler.id)}
                   >
-                    <Plus size={18} />
-                  </button>
-                  <span className="w-5 text-center">{traveler.count}</span>
-                  <button 
-                    onClick={() => updateTravelerCount(traveler.id, -1)}
-                    disabled={traveler.count === 0}
-                    className={cn(
-                      "w-8 h-8 rounded-full flex items-center justify-center",
-                      traveler.count > 0 
-                        ? "text-gray-700 hover:bg-gray-100" 
-                        : "text-gray-400 cursor-not-allowed"
-                    )}
-                  >
-                    <Minus size={18} />
-                  </button>
-                </div>
+                    <span className="text-base font-medium">{traveler.count}</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center space-x-2">
+                    <button 
+                      onClick={() => updateTravelerCount(traveler.id, 1)}
+                      className="w-8 h-8 rounded-full flex items-center justify-center text-gray-700 hover:bg-gray-100"
+                    >
+                      <Plus size={18} />
+                    </button>
+                    <span className="w-5 text-center">{traveler.count}</span>
+                    <button 
+                      onClick={() => updateTravelerCount(traveler.id, -1)}
+                      disabled={traveler.count === 0}
+                      className={cn(
+                        "w-8 h-8 rounded-full flex items-center justify-center",
+                        traveler.count > 0 
+                          ? "text-gray-700 hover:bg-gray-100" 
+                          : "text-gray-400 cursor-not-allowed"
+                      )}
+                    >
+                      <Minus size={18} />
+                    </button>
+                  </div>
+                )}
               </div>
             ))}
         </div>
@@ -160,27 +199,36 @@ const TravelersSelector: React.FC<TravelersSelectorProps> = ({
                     <p className="text-xs text-gray-500 ml-9 mt-1">{traveler.description}</p>
                   )}
                 </div>
-                <div className="flex items-center space-x-2">
-                  {traveler.count > 0 ? (
-                    <>
-                      <button 
-                        onClick={() => updateTravelerCount(traveler.id, 1)}
-                        className="w-8 h-8 rounded-full flex items-center justify-center text-gray-700 hover:bg-gray-100"
-                      >
-                        <Plus size={18} />
-                      </button>
-                      <span className="w-5 text-center">{traveler.count}</span>
-                      <button 
-                        onClick={() => updateTravelerCount(traveler.id, -1)}
-                        className="w-8 h-8 rounded-full flex items-center justify-center text-gray-700 hover:bg-gray-100"
-                      >
-                        <Minus size={18} />
-                      </button>
-                    </>
-                  ) : (
-                    <span className="w-5 text-center">0</span>
-                  )}
-                </div>
+                {isMobile ? (
+                  <div 
+                    className="px-4 py-2 bg-gray-100 rounded-lg cursor-pointer min-w-12 text-center"
+                    onClick={() => handleCountClick(traveler.id)}
+                  >
+                    <span className="text-base font-medium">{traveler.count}</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center space-x-2">
+                    {traveler.count > 0 ? (
+                      <>
+                        <button 
+                          onClick={() => updateTravelerCount(traveler.id, 1)}
+                          className="w-8 h-8 rounded-full flex items-center justify-center text-gray-700 hover:bg-gray-100"
+                        >
+                          <Plus size={18} />
+                        </button>
+                        <span className="w-5 text-center">{traveler.count}</span>
+                        <button 
+                          onClick={() => updateTravelerCount(traveler.id, -1)}
+                          className="w-8 h-8 rounded-full flex items-center justify-center text-gray-700 hover:bg-gray-100"
+                        >
+                          <Minus size={18} />
+                        </button>
+                      </>
+                    ) : (
+                      <span className="w-5 text-center">0</span>
+                    )}
+                  </div>
+                )}
               </div>
             ))}
         </div>
@@ -205,6 +253,19 @@ const TravelersSelector: React.FC<TravelersSelectorProps> = ({
 
       {/* Нижняя навигация */}
       <BottomNav />
+
+      {/* Mobile Number Picker */}
+      {pickerOpen && getCurrentTraveler() && (
+        <MobileNumberPicker
+          value={getCurrentTraveler()!.count}
+          min={0}
+          max={10}
+          onChange={(value) => handlePickerChange(pickerOpen, value)}
+          isOpen={!!pickerOpen}
+          onClose={() => setPickerOpen(null)}
+          title={`Select ${getCurrentTraveler()!.label} count`}
+        />
+      )}
     </div>
   );
 };
