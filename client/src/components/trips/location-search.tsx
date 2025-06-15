@@ -136,20 +136,9 @@ const LocationSearch: React.FC<LocationSearchProps> = ({
         console.error('Direct Mapbox API request failed:', directApiError);
       }
       
-      // Fallback к статическим данным
-      console.log('Using static location data as fallback');
-      const staticLocations = getStaticLocations(language);
-      
-      // Фильтруем локации по поисковому запросу
-      const queryLower = query.toLowerCase();
-      const filteredLocations = staticLocations.filter(location =>
-        location.placeName.toLowerCase().includes(queryLower)
-      );
-      
-      console.log('Filtered static locations:', filteredLocations);
-      
-      // Если нет совпадений, возвращаем топ-5 локации
-      setSuggestions(filteredLocations.length > 0 ? filteredLocations : staticLocations.slice(0, 5));
+      // Если не удалось получить данные из Mapbox, показываем пустой результат
+      console.log('No locations found from Mapbox API');
+      setSuggestions([]);
     } catch (error) {
       console.error('Error fetching locations:', error);
       setSuggestions([]);
@@ -158,37 +147,7 @@ const LocationSearch: React.FC<LocationSearchProps> = ({
     }
   };
 
-  // Статические локации с поддержкой разных языков
-  const getStaticLocations = (lang: string): Location[] => {
-    const locations = {
-      'en': [
-        { placeName: 'Moscow, Russia', lat: 55.7558, lng: 37.6173 },
-        { placeName: 'New York, NY, USA', lat: 40.7128, lng: -74.0060 },
-        { placeName: 'Paris, France', lat: 48.8566, lng: 2.3522 },
-        { placeName: 'London, UK', lat: 51.5074, lng: -0.1278 },
-        { placeName: 'Tokyo, Japan', lat: 35.6762, lng: 139.6503 },
-        { placeName: 'Berlin, Germany', lat: 52.5200, lng: 13.4050 },
-        { placeName: 'Rome, Italy', lat: 41.9028, lng: 12.4964 },
-        { placeName: 'Madrid, Spain', lat: 40.4168, lng: -3.7038 },
-        { placeName: 'Beijing, China', lat: 39.9042, lng: 116.4074 },
-        { placeName: 'Sydney, Australia', lat: -33.8688, lng: 151.2093 }
-      ],
-      'ru': [
-        { placeName: 'Москва, Россия', lat: 55.7558, lng: 37.6173 },
-        { placeName: 'Нью-Йорк, США', lat: 40.7128, lng: -74.0060 },
-        { placeName: 'Париж, Франция', lat: 48.8566, lng: 2.3522 },
-        { placeName: 'Лондон, Великобритания', lat: 51.5074, lng: -0.1278 },
-        { placeName: 'Токио, Япония', lat: 35.6762, lng: 139.6503 },
-        { placeName: 'Берлин, Германия', lat: 52.5200, lng: 13.4050 },
-        { placeName: 'Рим, Италия', lat: 41.9028, lng: 12.4964 },
-        { placeName: 'Мадрид, Испания', lat: 40.4168, lng: -3.7038 },
-        { placeName: 'Пекин, Китай', lat: 39.9042, lng: 116.4074 },
-        { placeName: 'Сидней, Австралия', lat: -33.8688, lng: 151.2093 }
-      ]
-    };
-    
-    return locations[lang as keyof typeof locations] || locations['en'];
-  };
+  
   
   // Выбор локации из предложенных
   const handleSelectLocation = (location: Location) => {
