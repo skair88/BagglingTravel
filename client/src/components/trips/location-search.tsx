@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Input } from '@/components/ui/input';
 import { MapPin, Search, X, Loader2 } from 'lucide-react';
-import { searchLocations } from '@/lib/mapbox';
+import { searchLocations, getCoordinates } from '@/lib/mapbox';
 
 // Интерфейс для представления локации
 interface Location {
@@ -14,12 +14,14 @@ interface LocationSearchProps {
   value: string;
   onChange: (value: string) => void;
   onLocationSelect: (location: Location) => void;
+  language?: string; // Добавляем поддержку языка
 }
 
 const LocationSearch: React.FC<LocationSearchProps> = ({ 
   value, 
   onChange,
-  onLocationSelect
+  onLocationSelect,
+  language = 'en' // По умолчанию английский
 }) => {
   const [suggestions, setSuggestions] = useState<Location[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -72,41 +74,13 @@ const LocationSearch: React.FC<LocationSearchProps> = ({
     if (!query) return;
     
     setIsLoading(true);
-    console.log('Fetching locations for query:', query);
+    console.log('Fetching locations for query:', query, 'language:', language);
     
     try {
-      // Первый способ: используем нашу библиотеку mapbox
+      // Сначала пробуем использовать прокси-АПИ на сервере с поддержкой языка
       try {
-        console.log('Using direct mapbox API connection');
-        const suggestions = await searchLocations(query);
-        
-        if (suggestions && suggestions.length > 0) {
-          console.log('Mapbox API found locations:', suggestions);
-          // Преобразуем данные к нужному формату
-          const formattedLocations = suggestions.map(suggestion => ({
-            placeName: suggestion.fullName,
-            lat: 0, // Координаты заполним позже
-            lng: 0
-          }));
-          
-          // Получаем координаты для первой локации сразу (для демонстрации)
-          const location = formattedLocations[0];
-          if (location) {
-            // Если бы у нас было больше времени, мы бы получили координаты для всех результатов
-            setSuggestions(formattedLocations);
-            setIsLoading(false);
-            return;
-          }
-        }
-      } catch (directApiError) {
-        console.error('Direct Mapbox API request failed:', directApiError);
-      }
-      
-      // Второй способ: используем прокси-АПИ на сервере
-      try {
-        // Добавляем timestamp для предотвращения кэширования
         const timestamp = new Date().getTime();
-        const apiUrl = `/api/geocode?query=${encodeURIComponent(query)}&_=${timestamp}`;
+        const apiUrl = `/api/geocode?query=${encodeURIComponent(query)}&language=${language}&_=${timestamp}`;
         console.log('Requesting server proxy API:', apiUrl);
         
         const response = await fetch(apiUrl);
@@ -120,24 +94,76 @@ const LocationSearch: React.FC<LocationSearchProps> = ({
             setIsLoading(false);
             return;
           }
-        } else {
-          // Если сервер вернул ошибку, выводим подробности
-          try {
-            const errorData = await response.json();
-            console.error('API error details:', errorData);
-          } catch (e) {
-            console.error('Could not parse API error response');
-          }
         }
       } catch (apiError) {
         console.error('Server proxy API request failed:', apiError);
       }
+
+      // Пробуем прямое обращение к Mapbox API
+      try {
+        console.log('Using direct mapbox API connection');
+        const suggestions = await searchLocations(query, 5, language);
+        
+        if (suggestions && suggestions.length > 0) {
+          console.log('Mapbox API found locations:', suggestions);
+          
+          // Получаем координаты для каждой локации
+          const locationsWithCoords = await Promise.all(
+            suggestions.map(async (suggestion) => {
+              try {
+                const coordinates = await getCoordinates(suggestion.name, language);
+                return {
+                  placeName: suggestion.fullName,
+                  lat: coordinates[1], // latitude
+                  lng: coordinates[0]  // longitude
+                };
+              } catch (error) {
+                console.error('Error getting coordinates for:', suggestion.name, error);
+                return {
+                  placeName: suggestion.fullName,
+                  lat: 0,
+                  lng: 0
+                };
+              }
+            })
+          );
+          
+          setSuggestions(locationsWithCoords);
+          setIsLoading(false);
+          return;
+        }
+      } catch (directApiError) {
+        console.error('Direct Mapbox API request failed:', directApiError);
+      }
       
-      // Третий способ: используем статические данные, если онлайн-методы не сработали
+      // Fallback к статическим данным
       console.log('Using static location data as fallback');
-      const staticLocations = [
+      const staticLocations = getStaticLocations(language);
+      
+      // Фильтруем локации по поисковому запросу
+      const queryLower = query.toLowerCase();
+      const filteredLocations = staticLocations.filter(location =>
+        location.placeName.toLowerCase().includes(queryLower)
+      );
+      
+      console.log('Filtered static locations:', filteredLocations);
+      
+      // Если нет совпадений, возвращаем топ-5 локации
+      setSuggestions(filteredLocations.length > 0 ? filteredLocations : staticLocations.slice(0, 5));
+    } catch (error) {
+      console.error('Error fetching locations:', error);
+      setSuggestions([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Статические локации с поддержкой разных языков
+  const getStaticLocations = (lang: string): Location[] => {
+    const locations = {
+      'en': [
         { placeName: 'Moscow, Russia', lat: 55.7558, lng: 37.6173 },
-        { placeName: 'New York, USA', lat: 40.7128, lng: -74.0060 },
+        { placeName: 'New York, NY, USA', lat: 40.7128, lng: -74.0060 },
         { placeName: 'Paris, France', lat: 48.8566, lng: 2.3522 },
         { placeName: 'London, UK', lat: 51.5074, lng: -0.1278 },
         { placeName: 'Tokyo, Japan', lat: 35.6762, lng: 139.6503 },
@@ -146,23 +172,22 @@ const LocationSearch: React.FC<LocationSearchProps> = ({
         { placeName: 'Madrid, Spain', lat: 40.4168, lng: -3.7038 },
         { placeName: 'Beijing, China', lat: 39.9042, lng: 116.4074 },
         { placeName: 'Sydney, Australia', lat: -33.8688, lng: 151.2093 }
-      ];
-      
-      // Фильтруем локации по поисковому запросу
-      const filteredLocations = staticLocations.filter(location =>
-        location.placeName.toLowerCase().includes(query.toLowerCase())
-      );
-      
-      console.log('Filtered static locations:', filteredLocations);
-      
-      // Если нет совпадений, возвращаем топ-3 локации
-      setSuggestions(filteredLocations.length > 0 ? filteredLocations : staticLocations.slice(0, 3));
-    } catch (error) {
-      console.error('Error fetching locations:', error);
-      setSuggestions([]);
-    } finally {
-      setIsLoading(false);
-    }
+      ],
+      'ru': [
+        { placeName: 'Москва, Россия', lat: 55.7558, lng: 37.6173 },
+        { placeName: 'Нью-Йорк, США', lat: 40.7128, lng: -74.0060 },
+        { placeName: 'Париж, Франция', lat: 48.8566, lng: 2.3522 },
+        { placeName: 'Лондон, Великобритания', lat: 51.5074, lng: -0.1278 },
+        { placeName: 'Токио, Япония', lat: 35.6762, lng: 139.6503 },
+        { placeName: 'Берлин, Германия', lat: 52.5200, lng: 13.4050 },
+        { placeName: 'Рим, Италия', lat: 41.9028, lng: 12.4964 },
+        { placeName: 'Мадрид, Испания', lat: 40.4168, lng: -3.7038 },
+        { placeName: 'Пекин, Китай', lat: 39.9042, lng: 116.4074 },
+        { placeName: 'Сидней, Австралия', lat: -33.8688, lng: 151.2093 }
+      ]
+    };
+    
+    return locations[lang as keyof typeof locations] || locations['en'];
   };
   
   // Выбор локации из предложенных
@@ -215,7 +240,7 @@ const LocationSearch: React.FC<LocationSearchProps> = ({
           value={value}
           onChange={handleChange}
           onFocus={handleFocus}
-          placeholder="Where are you going?"
+          placeholder={language === 'ru' ? "Куда направляетесь?" : "Where are you going?"}
           className="flex-1 border-0 focus-visible:ring-0 focus-visible:ring-offset-0 h-12 px-0"
         />
         
@@ -243,7 +268,7 @@ const LocationSearch: React.FC<LocationSearchProps> = ({
           {isLoading ? (
             <div className="p-4 flex items-center justify-center text-gray-500">
               <Loader2 size={20} className="animate-spin mr-2" />
-              <span>Searching locations...</span>
+              <span>{language === 'ru' ? 'Поиск локаций...' : 'Searching locations...'}</span>
             </div>
           ) : suggestions.length > 0 ? (
             <ul className="py-1">
@@ -271,8 +296,8 @@ const LocationSearch: React.FC<LocationSearchProps> = ({
             </ul>
           ) : (
             <div className="p-4 text-center text-gray-500">
-              <p className="mb-1">No locations found</p>
-              <p className="text-sm">Try a different search term</p>
+              <p className="mb-1">{language === 'ru' ? 'Локации не найдены' : 'No locations found'}</p>
+              <p className="text-sm">{language === 'ru' ? 'Попробуйте другой поисковый запрос' : 'Try a different search term'}</p>
             </div>
           )}
         </div>

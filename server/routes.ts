@@ -43,19 +43,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!mapboxApiKey) {
         console.log("Fallback to static locations data for query:", query);
         
-        // Static locations that match the query
-        const staticLocations = [
-          { placeName: 'Moscow, Russia', lat: 55.7558, lng: 37.6173 },
-          { placeName: 'New York, NY, USA', lat: 40.7128, lng: -74.0060 },
-          { placeName: 'Paris, France', lat: 48.8566, lng: 2.3522 },
-          { placeName: 'London, UK', lat: 51.5074, lng: -0.1278 },
-          { placeName: 'Berlin, Germany', lat: 52.5200, lng: 13.4050 },
-          { placeName: 'Rome, Italy', lat: 41.9028, lng: 12.4964 },
-          { placeName: 'Madrid, Spain', lat: 40.4168, lng: -3.7038 },
+        // Static locations with language support
+        const getStaticLocations = (lang: string) => {
+          const locations = {
+            'en': [
+              { placeName: 'Moscow, Russia', lat: 55.7558, lng: 37.6173 },
+              { placeName: 'New York, NY, USA', lat: 40.7128, lng: -74.0060 },
+              { placeName: 'Paris, France', lat: 48.8566, lng: 2.3522 },
+              { placeName: 'London, UK', lat: 51.5074, lng: -0.1278 },
+              { placeName: 'Berlin, Germany', lat: 52.5200, lng: 13.4050 },
+              { placeName: 'Rome, Italy', lat: 41.9028, lng: 12.4964 },
+              { placeName: 'Madrid, Spain', lat: 40.4168, lng: -3.7038 },
           { placeName: 'Tokyo, Japan', lat: 35.6762, lng: 139.6503 },
-          { placeName: 'Beijing, China', lat: 39.9042, lng: 116.4074 },
-          { placeName: 'Sydney, Australia', lat: -33.8688, lng: 151.2093 }
-        ];
+              { placeName: 'Beijing, China', lat: 39.9042, lng: 116.4074 },
+              { placeName: 'Sydney, Australia', lat: -33.8688, lng: 151.2093 }
+            ],
+            'ru': [
+              { placeName: 'Москва, Россия', lat: 55.7558, lng: 37.6173 },
+              { placeName: 'Нью-Йорк, США', lat: 40.7128, lng: -74.0060 },
+              { placeName: 'Париж, Франция', lat: 48.8566, lng: 2.3522 },
+              { placeName: 'Лондон, Великобритания', lat: 51.5074, lng: -0.1278 },
+              { placeName: 'Берлин, Германия', lat: 52.5200, lng: 13.4050 },
+              { placeName: 'Рим, Италия', lat: 41.9028, lng: 12.4964 },
+              { placeName: 'Мадрид, Испания', lat: 40.4168, lng: -3.7038 },
+              { placeName: 'Токио, Япония', lat: 35.6762, lng: 139.6503 },
+              { placeName: 'Пекин, Китай', lat: 39.9042, lng: 116.4074 },
+              { placeName: 'Сидней, Австралия', lat: -33.8688, lng: 151.2093 }
+            ]
+          };
+          return locations[lang as keyof typeof locations] || locations['en'];
+        };
+        
+        const staticLocations = getStaticLocations(language as string);
         
         // Filter locations by query term (case insensitive)
         const queryLower = (query as string).toLowerCase();
@@ -63,9 +82,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           loc.placeName.toLowerCase().includes(queryLower)
         );
         
-        // If no matches found, return top 3 locations
+        // If no matches found, return top 5 locations
         if (locations.length === 0) {
-          locations = staticLocations.slice(0, 3);
+          locations = staticLocations.slice(0, 5);
         }
       } else {
         try {

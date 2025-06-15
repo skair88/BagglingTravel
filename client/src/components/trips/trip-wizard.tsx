@@ -50,11 +50,11 @@ const TripWizard: React.FC<TripWizardProps> = ({ onComplete }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [weatherForecast, setWeatherForecast] = useState<WeatherForecast[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  
+
   // Handle search location
   const handleSearch = async () => {
     if (searchQuery.trim().length === 0) return;
-    
+
     setIsLoading(true);
     try {
     const locationDataArray = await mapbox.searchLocations(searchQuery);
@@ -73,7 +73,7 @@ const TripWizard: React.FC<TripWizardProps> = ({ onComplete }) => {
       setIsLoading(false);
     }
   };
-  
+
   // Fetch weather forecast when location and dates are set
   useEffect(() => {
     const fetchWeather = async () => {
@@ -91,43 +91,43 @@ const TripWizard: React.FC<TripWizardProps> = ({ onComplete }) => {
         }
       }
     };
-    
+
     fetchWeather();
   }, [tripData.location, tripData.startDate, tripData.endDate]);
-  
+
   // Handle destination selection
   const handleDestinationNext = () => {
     if (tripData.destination) {
       navigate('/trip-creator/step/2');
     }
   };
-  
+
   // Handle date selection
   const handleDateNext = () => {
     navigate('/trip-creator/step/3');
   };
-  
+
   // Handle activity selection
   const toggleActivity = (activity: string) => {
     setTripData(prev => {
       const activities = prev.activities.includes(activity)
         ? prev.activities.filter(a => a !== activity)
         : [...prev.activities, activity];
-      
+
       return { ...prev, activities };
     });
   };
-  
+
   // Handle purpose selection
   const selectPurpose = (purpose: string) => {
     setTripData(prev => ({ ...prev, purpose }));
   };
-  
+
   // Complete the wizard
   const handleComplete = () => {
     onComplete(tripData);
   };
-  
+
   // Navigate back or to home
   const handleBack = () => {
     if (step === '1') {
@@ -137,7 +137,7 @@ const TripWizard: React.FC<TripWizardProps> = ({ onComplete }) => {
       navigate(`/trip-creator/step/${prevStep}`);
     }
   };
-  
+
   return (
     <>
       <Header 
@@ -145,7 +145,7 @@ const TripWizard: React.FC<TripWizardProps> = ({ onComplete }) => {
         showBackButton 
         onBackClick={handleBack}
       />
-      
+
       {/* Wizard Progress */}
       <div className="flex justify-center mt-4 px-5">
         <div className="flex items-center space-x-2">
@@ -154,12 +154,12 @@ const TripWizard: React.FC<TripWizardProps> = ({ onComplete }) => {
           <div className={`progress-dot w-3 h-3 rounded-full ${parseInt(step) >= 3 ? 'bg-primary' : 'bg-gray-300'}`}></div>
         </div>
       </div>
-      
+
       {/* Step 1: Destination Selection */}
       {step === '1' && (
         <div className="px-5 mt-6">
           <h2 className="text-lg font-medium mb-4">Where are you going?</h2>
-          
+
           {/* Search Input */}
           <div className="relative mb-4">
             <div className="flex items-center gap-2">
@@ -179,7 +179,7 @@ const TripWizard: React.FC<TripWizardProps> = ({ onComplete }) => {
               </Button>
             </div>
           </div>
-          
+
           {/* Map Preview */}
           <div className="rounded-xl overflow-hidden mb-6 border border-border shadow-sm">
             <div className="h-60 bg-gray-100 relative">
@@ -199,7 +199,7 @@ const TripWizard: React.FC<TripWizardProps> = ({ onComplete }) => {
               )}
             </div>
           </div>
-          
+
           {/* Selected Destination */}
           {tripData.destination && (
             <div className="bg-white p-4 rounded-lg border border-border mb-6">
@@ -210,7 +210,7 @@ const TripWizard: React.FC<TripWizardProps> = ({ onComplete }) => {
               </div>
             </div>
           )}
-          
+
           {/* Next Button */}
           <Button 
             className="w-full" 
@@ -221,13 +221,13 @@ const TripWizard: React.FC<TripWizardProps> = ({ onComplete }) => {
           </Button>
         </div>
       )}
-      
+
       {/* Step 2: Date Selection */}
       {step === '2' && (
         <div className="px-5 mt-6">
           <h2 className="text-lg font-medium mb-2">When are you traveling?</h2>
           <p className="text-text-secondary text-sm mb-4">Select your departure and return dates</p>
-          
+
           {/* Date inputs */}
           <div className="grid grid-cols-2 gap-4 mb-6">
             <div>
@@ -255,10 +255,10 @@ const TripWizard: React.FC<TripWizardProps> = ({ onComplete }) => {
               />
             </div>
           </div>
-          
+
           {/* Weather Forecast */}
           <h3 className="font-medium mb-3">Weather Forecast</h3>
-          
+
           <div className="flex overflow-x-auto weather-scroll pb-2 mb-6">
             {weatherForecast.length > 0 ? (
               weatherForecast.map((day, index) => (
@@ -278,19 +278,19 @@ const TripWizard: React.FC<TripWizardProps> = ({ onComplete }) => {
               </div>
             )}
           </div>
-          
+
           {/* Next Button */}
           <Button className="w-full" onClick={handleDateNext}>
             Continue
           </Button>
         </div>
       )}
-      
+
       {/* Step 3: Trip Purpose and Activities */}
       {step === '3' && (
         <div className="px-5 mt-6">
           <h2 className="text-lg font-medium mb-4">Trip Purpose</h2>
-          
+
           {/* Trip Type Selection */}
           <div className="grid grid-cols-2 gap-3 mb-6">
             {tripPurposes.map(purpose => (
@@ -306,11 +306,11 @@ const TripWizard: React.FC<TripWizardProps> = ({ onComplete }) => {
               </div>
             ))}
           </div>
-          
+
           {/* Activities Section */}
           <h2 className="text-lg font-medium mb-4">Activities</h2>
           <p className="text-text-secondary text-sm mb-4">Select activities you plan to do</p>
-          
+
           <div className="space-y-3 mb-6">
             {availableActivities.map(activity => (
               <div key={activity} className="flex items-center bg-white rounded-lg border border-border p-3">
@@ -328,12 +328,12 @@ const TripWizard: React.FC<TripWizardProps> = ({ onComplete }) => {
               </div>
             ))}
           </div>
-          
+
           {/* Finish Button */}
           <Button className="w-full mb-3" onClick={handleComplete}>
             Generate Packing List
           </Button>
-          
+
           <p className="text-xs text-text-secondary text-center">
             We'll create your personalized packing list based on your destination, trip dates, weather, and activities.
           </p>
