@@ -28,14 +28,15 @@ const MobileNumberPicker: React.FC<MobileNumberPickerProps> = ({
   // Создаем массив чисел от min до max
   const numbers = Array.from({ length: max - min + 1 }, (_, i) => min + i);
 
-  // Обновляем позицию скролла при изменении значения
+  // Обновляем позицию скролла при открытии пикера
   useEffect(() => {
     if (scrollRef.current && isOpen) {
-      const index = selectedValue - min;
+      const index = value - min; // Используем переданное значение
       const scrollTop = index * itemHeight;
       scrollRef.current.scrollTop = scrollTop;
+      setSelectedValue(value); // Устанавливаем начальное значение
     }
-  }, [selectedValue, min, isOpen]);
+  }, [isOpen, value, min]);
 
   // Обработчик скролла для определения выбранного значения
   const handleScroll = () => {
@@ -87,7 +88,7 @@ const MobileNumberPicker: React.FC<MobileNumberPickerProps> = ({
         <div className="relative h-48 overflow-hidden">
           {/* Selected item indicator */}
           <div 
-            className="absolute left-0 right-0 h-12 bg-amber-100 border-y border-amber-200 pointer-events-none z-10"
+            className="absolute left-0 right-0 h-12 bg-amber-100 border-y-2 border-amber-400 pointer-events-none z-10 rounded-lg"
             style={{ top: '50%', transform: 'translateY(-50%)' }}
           />
           
@@ -106,10 +107,10 @@ const MobileNumberPicker: React.FC<MobileNumberPickerProps> = ({
               <div
                 key={number}
                 className={cn(
-                  "flex items-center justify-center h-12 text-lg cursor-pointer transition-colors",
+                  "flex items-center justify-center h-12 text-xl cursor-pointer transition-all duration-200",
                   selectedValue === number 
-                    ? "text-amber-600 font-medium" 
-                    : "text-gray-600"
+                    ? "text-amber-600 font-bold text-2xl scale-110" 
+                    : "text-gray-500 font-normal"
                 )}
                 style={{ scrollSnapAlign: 'center' }}
                 onClick={() => handleItemClick(number)}
