@@ -107,9 +107,9 @@ const MobileNumberPicker: React.FC<MobileNumberPickerProps> = ({
               <div
                 key={number}
                 className={cn(
-                  "flex items-center justify-center h-12 cursor-pointer transition-all duration-200",
+                  "flex items-center justify-center h-12 cursor-pointer transition-all duration-200 mx-auto",
                   selectedValue === number 
-                    ? "text-amber-600 font-bold text-2xl" 
+                    ? "text-amber-600 font-bold text-3xl scale-125 bg-amber-50 rounded-lg mx-8" 
                     : "text-gray-500 font-normal text-xl"
                 )}
                 style={{ scrollSnapAlign: 'center' }}

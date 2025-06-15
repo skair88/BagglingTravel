@@ -144,15 +144,12 @@ const TravelersSelector: React.FC<TravelersSelectorProps> = ({
             .map(traveler => (
               <div key={traveler.id} className="flex items-center justify-between py-3">
                 <div className="flex items-center">
-                  <div
-                    onClick={() => handleCheckboxChange(traveler.id, traveler.count === 0)}
-                    className={cn(
-                      "w-5 h-5 mr-3 rounded border-2 cursor-pointer transition-colors",
-                      traveler.count > 0 
-                        ? "bg-amber-500 border-amber-500" 
-                        : "bg-white border-gray-300"
-                    )}
-                  /></div>
+                  <input
+                    type="checkbox"
+                    checked={traveler.count > 0}
+                    onChange={(e) => handleCheckboxChange(traveler.id, e.target.checked)}
+                    className="w-5 h-5 mr-3 accent-amber-500 cursor-pointer"
+                  />
                   <span className="text-base">{traveler.label}</span>
                 </div>
                 {isMobile ? (
@@ -204,15 +201,12 @@ const TravelersSelector: React.FC<TravelersSelectorProps> = ({
               <div key={traveler.id} className="flex items-center justify-between py-3">
                 <div className="flex-1">
                   <div className="flex items-center">
-                    <div
-                      onClick={() => handleCheckboxChange(traveler.id, traveler.count === 0)}
-                      className={cn(
-                        "w-5 h-5 mr-3 rounded border-2 cursor-pointer transition-colors",
-                        traveler.count > 0 
-                          ? "bg-amber-500 border-amber-500" 
-                          : "bg-white border-gray-300"
-                      )}
-                    /></div>
+                    <input
+                      type="checkbox"
+                      checked={traveler.count > 0}
+                      onChange={(e) => handleCheckboxChange(traveler.id, e.target.checked)}
+                      className="w-5 h-5 mr-3 accent-amber-500 cursor-pointer"
+                    />
                     <span className="text-base">{traveler.label}</span>
                   </div>
                   {traveler.description && (
