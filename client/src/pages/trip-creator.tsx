@@ -327,7 +327,7 @@ export default function TripCreator() {
       </div>
       
       {/* Next Button */}
-      <div className="px-6 pb-6 items-center justify-center flex mt-auto">
+      <div className="px-6 py-6 items-center justify-center flex mt-8">
         <TripButton 
           className="w-full py-2 text-base"
           onClick={handleGoToTravelers}
