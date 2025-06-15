@@ -68,6 +68,16 @@ const TravelersSelector: React.FC<TravelersSelectorProps> = ({
     }));
   };
 
+  // Обработчик чекбокса - включает/выключает категорию
+  const handleCheckboxChange = (id: string, checked: boolean) => {
+    setTravelers(prev => prev.map(traveler => {
+      if (traveler.id === id) {
+        return { ...traveler, count: checked ? 1 : 0 };
+      }
+      return traveler;
+    }));
+  };
+
   // Обработчик клика по количеству
   const handleCountClick = (id: string) => {
     if (isMobile) {
@@ -134,10 +144,12 @@ const TravelersSelector: React.FC<TravelersSelectorProps> = ({
             .map(traveler => (
               <div key={traveler.id} className="flex items-center justify-between py-3">
                 <div className="flex items-center">
-                  <div className={cn(
-                    "w-6 h-6 rounded-sm mr-3",
-                    traveler.count > 0 ? "bg-amber-500" : "border border-gray-300"
-                  )}></div>
+                  <input
+                    type="checkbox"
+                    checked={traveler.count > 0}
+                    onChange={(e) => handleCheckboxChange(traveler.id, e.target.checked)}
+                    className="w-5 h-5 mr-3 accent-amber-500 cursor-pointer"
+                  />
                   <span className="text-base">{traveler.label}</span>
                 </div>
                 {isMobile ? (
@@ -189,14 +201,16 @@ const TravelersSelector: React.FC<TravelersSelectorProps> = ({
               <div key={traveler.id} className="flex items-center justify-between py-3">
                 <div className="flex-1">
                   <div className="flex items-center">
-                    <div className={cn(
-                      "w-6 h-6 rounded-sm mr-3",
-                      traveler.count > 0 ? "bg-amber-500" : "border border-gray-300"
-                    )}></div>
+                    <input
+                      type="checkbox"
+                      checked={traveler.count > 0}
+                      onChange={(e) => handleCheckboxChange(traveler.id, e.target.checked)}
+                      className="w-5 h-5 mr-3 accent-amber-500 cursor-pointer"
+                    />
                     <span className="text-base">{traveler.label}</span>
                   </div>
                   {traveler.description && (
-                    <p className="text-xs text-gray-500 ml-9 mt-1">{traveler.description}</p>
+                    <p className="text-xs text-gray-500 ml-8 mt-1">{traveler.description}</p>
                   )}
                 </div>
                 {isMobile ? (

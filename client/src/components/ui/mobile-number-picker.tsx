@@ -88,7 +88,7 @@ const MobileNumberPicker: React.FC<MobileNumberPickerProps> = ({
         <div className="relative h-48 overflow-hidden">
           {/* Selected item indicator */}
           <div 
-            className="absolute left-0 right-0 h-12 bg-amber-100 border-y-2 border-amber-400 pointer-events-none z-10 rounded-lg"
+            className="absolute left-0 right-0 h-12 bg-amber-100 border-y-2 border-amber-400 pointer-events-none z-10 rounded-lg mx-4"
             style={{ top: '50%', transform: 'translateY(-50%)' }}
           />
           
@@ -107,10 +107,10 @@ const MobileNumberPicker: React.FC<MobileNumberPickerProps> = ({
               <div
                 key={number}
                 className={cn(
-                  "flex items-center justify-center h-12 text-xl cursor-pointer transition-all duration-200",
+                  "flex items-center justify-center h-12 cursor-pointer transition-all duration-200 mx-auto",
                   selectedValue === number 
-                    ? "text-amber-600 font-bold text-2xl scale-110" 
-                    : "text-gray-500 font-normal"
+                    ? "text-amber-600 font-bold text-3xl scale-125 bg-amber-50 rounded-lg mx-8" 
+                    : "text-gray-500 font-normal text-xl"
                 )}
                 style={{ scrollSnapAlign: 'center' }}
                 onClick={() => handleItemClick(number)}
