@@ -276,7 +276,7 @@ export default function TripCreator() {
   const renderTripDetails = () => (
     <div className="flex flex-col bg-gray-50">
       {/* Прогрессбар */}
-      <div className="px-6 py-4">
+      <div className="px-4 py-4">
         <ProgressBar currentStep={1} totalSteps={3} />
       </div>
 
