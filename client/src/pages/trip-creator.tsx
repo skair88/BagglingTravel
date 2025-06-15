@@ -275,14 +275,14 @@ export default function TripCreator() {
   // Рендер экрана с деталями поездки
   const renderTripDetails = () => (
     <div className="flex flex-col bg-gray-50">
+      {/* Прогрессбар */}
+      <div className="px-6 py-4">
+        <ProgressBar currentStep={1} totalSteps={3} />
+      </div>
+
       {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto p-4 pb-16">
-        {/* Прогрессбар */}
-        <div className="px-4 mt-4">
-          <ProgressBar currentStep={1} totalSteps={3} />
-        </div>
-
-        <div className="mt-6">
+        <div className="mt-2"></div>
           <h2 className="text-center text-lg font-medium mb-3">Direction</h2>
           <LocationSearch
             value={locationInput}
